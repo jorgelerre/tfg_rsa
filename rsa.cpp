@@ -6,7 +6,36 @@
 
 using namespace std;
 
+/*
+ * Genera un numero aleatorio corto
+ * @it Numero de iteraciones que aplicar la prueba
+ * @return Un numero aleatorio de 64 bits
+*/
+unsigned long int generate_random_limb(gmp_randstate_t state) {
+    mpz_t random_num;
+    unsigned long int r;
+    mpz_init(random_num);
+
+    // Genera un número aleatorio de tamaño máximo de un unsigned long int
+    mpz_urandomb(random_num, state, GMP_LIMB_BITS);
+
+    // Convierte el número generado a unsigned long int
+    r = mpz_getlimbn(random_num, 0);
+
+    // Limpieza
+    mpz_clear(random_num);
+    
+    return r;
+}
+
+/*
+ * Comprueba si un numero es pseudoprimo fuerte en cierta base
+ * @p Numero entero a analizar
+ * @base Base donde estudiar la pseudoprimalidad de p
+ * @return True si p es pseudoprimo fuerte en base, False en otro caso.
+ */
 bool strongPseudoprime(const mpz_t p, const mpz_t base, bool debug = true){
+	cout << "HOLA" << endl << flush;
 	bool is_pseudoprime = false;
 	mpz_t mcd;
 	mpz_t q, r;
@@ -59,93 +88,30 @@ bool strongPseudoprime(const mpz_t p, const mpz_t base, bool debug = true){
 }
 
 /*
-bool BigInt::strongPseudoprime(const BigInt& base, bool debug) const{
-	bool is_pseudoprime = false;
-	BigInt mcd, mcm, u0, v0;
-	BigInt q, r;
-	BigInt b;
-	BigInt zero = "0x0", one = "0x1", two = "0x2";
-	//Comprobamos que sean coprimos y que el primo que comprobamos sea mayor que 1
-	this->EEA(base, mcd, mcm, u0, v0);
-	if(debug)
-		cout << "mcd de a y la base = " << mcd << endl;
-	if(mcd == one && one < (*this)){
-		//Calculamos s,t tales que n-1 = 2^s*t con t impar
-		BigInt t = (*this) - one, s = zero;
-		t.scholarDivision(two, q, r);
-		while (r == zero){
-			t = q;
-			s = s + one;
-			t.scholarDivision(BigInt(two), q, r);
-		}
-		if(debug){
-			cout << "s = " << s << endl;
-			cout << "t = " << t << endl;
-			cout << "2^s*t = " << two.quickModExp(s,*this)*t << endl;	//el modulo es mayor que 2^s
-		}
-		
-		b = base.quickModExp(t, *this);
-		
-		if(b == one || b == (*this) - one){
-			is_pseudoprime = true;
-		}
-		for(BigInt r = one; r < s - one && !is_pseudoprime; r = r + one){
-			b = (b*b) % (*this);
-			if(b == (*this) - one){
-				is_pseudoprime = true;
-			}
-		}
-	}
-	return is_pseudoprime;
-}
-
-bool BigInt::millerRabinTest(int k, bool debug){
-	bool no_fail = true;
-	BigInt rn;
-	for(int i = 0; i < k && no_fail; i++){
-		rn = randomBigInt(*this);
-		if(debug){
-			cout << "-------------i = " << i << "-------------" << endl;
-			cout << "Numero aleatorio generado = " << rn << endl;
-		}
-		if(strongPseudoprime(rn, debug) == false){
-			no_fail = false;
-		}
-	}
-	return no_fail;
-}
-*/
-
-/*
- * Genera un numero aleatorio 
- * @p Numero entero a analizar
- * @it Numero de iteraciones que aplicar la prueba
-*/
-void generate_random_limb(mp_limb_t &random_limb, gmp_randstate_t state) {
-    mpz_t random_num;
-    mpz_init(random_num);
-
-    // Genera un número aleatorio de tamaño máximo de un mp_limb_t
-    mpz_urandomb(random_num, state, GMP_LIMB_BITS);
-
-    // Convierte el número generado a mp_limb_t
-    random_limb = mpz_getlimbn(random_num, 0);
-
-    // Limpieza
-    mpz_clear(random_num);
-}
-
-/*
  * Aplica el test de Miller Rabin sobre un primo cierto numero de veces
  * @p Numero entero a analizar
  * @it Numero de iteraciones que aplicar la prueba
+ * @state El estado del generador de numeros aleatorios
+ * @return True si p es un primo con confianza 1-4^{-it}, false en otro caso.
 */
-bool millerRabin(mpz_t p, int it){
+bool millerRabin(mpz_t p, int it, gmp_randstate_t state){
 	bool no_fail = true;
-	mp_limb_t a;
+	unsigned long int a;
+	mpz_t b;
+	
+	mpz_init(b);
+	
+	//Realizamos it veces la comprobacion de Miller-Rabin
 	for(int i = 0; i < it && no_fail; i++){
-		
+		//Generamos un numero aleatorio (pequeño (1 miembro) para aligerar los calculos)
+		a = generate_random_limb(state);
+		cout << "Estado generado: " << a << endl;
+		mpz_set_ui(b,a);
+		//Comprobamos la pseudoprimalidad en dicha base
+		no_fail = strongPseudoprime(p, b);
 	}
+	
+	mpz_clear(b);
 	
 	return no_fail;
 }
@@ -161,18 +127,25 @@ void generate_prime(mpz_t prime, int bits) {
 
 // Función principal para generar claves RSA
 void generate_rsa_key(int bits, mpz_t n, mpz_t e, mpz_t d) {
-
+	
 }
 
 int main() {
+	//Inicializacion de numeros aleatorios
+	gmp_randstate_t state;
+	gmp_randinit_default(state);
+    gmp_randseed_ui(state, static_cast<unsigned long>(time(nullptr)));
+    
+    //Programa principal
 	bool pseudoprimo;
 	mpz_t p, base;
 	mpz_inits(p, base, nullptr);
-	mpz_set_ui(p, 501);
+	mpz_set_ui(p, 503);
 	mpz_set_ui(base, 2);
-	pseudoprimo = strongPseudoprime(p, base, true);
+	pseudoprimo = millerRabin(p, 5, state);
 	cout << pseudoprimo << endl;
-	mpz_clears(p, base, nullptr);
+	
+	mpz_clears(p, base, state, nullptr);
     return 0;
 }
 
