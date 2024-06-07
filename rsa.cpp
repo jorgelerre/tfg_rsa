@@ -336,21 +336,73 @@ void cifra_RSA(mpz_t m_cifrado, mpz_t m, mpz_t e, mpz_t n){
 
 // Factoriza n si p y q son muy cercanos
 void ataqueFermat(mpz_t n, mpz_t p, mpz_t q){
+	mpz_t x, u, v, r;
+	mpz_inits(x, u, v, r, nullptr);
+	int perf_square = 0;
+	
+	//Calculamos el valor inicial sqrt(n)
+	//Comprobamos si n es un cuadrado perfecto
+	perf_square = mpz_root (x, n, 2);
+	if(perf_square != 0){	//Si lo es, damos como solucion la raiz
+		mpz_set(p, x);
+		mpz_set(q, x);
+	}
+	
+	//u = 2x + 1
+	mpz_mul_ui(u, x, 2);
+	mpz_add_ui(u, u, 1);
+	//v = 1
+	mpz_set_ui(v, 1);
+	//r = x^2 - n
+	mpz_mul(r, x, x);
+	mpz_sub(r, r, n);
+	
+	while(mpz_cmp_si(r,0) != 0){
+		if(mpz_cmp_si(r,0) > 0){
+			mpz_sub(r,r,v);
+			mpz_add_ui(v,v,2);
+		}
+		else{
+			mpz_add(r,r,u);
+			mpz_add_ui(u,u,2);
+		}
+	}
+	
+	//p = (u+v-2)/2
+	mpz_add(p, u, v);
+	mpz_sub_ui(p, p, 2);
+	mpz_fdiv_q_ui(p, p, 2);
+	//q = (u-v)/2
+	mpz_sub(q, u, v);
+	mpz_fdiv_q_ui(q, q, 2);
+	
+	mpz_clears(x, u, v, r, nullptr);
+}
+
+// Factoriza n si p y q son muy cercanos
+void ataqueKraitchik(mpz_t n, mpz_t p, mpz_t q){
 	mpz_t x, sq_x;
 	mpz_inits(x, sq_x, nullptr);
 	int perf_square = 0;
 	
-	//Calculamos el valor inicial sqrt(n) (ceil)
-	mpz_root (x, n, 2);
-	mpz_add_ui(x,x,1);
+	//Calculamos el valor inicial sqrt(n) (con redondeo hacia arriba)
+	//A su vez, comprobamos si n es un cuadrado perfecto
+	perf_square = mpz_root (x, n, 2);
+	if(perf_square != 0){	//Si lo es, damos como solucion la raiz
+		mpz_set(p, x);
+		mpz_set(q, x);
+	}
+	
+	mpz_add_ui(x, x, 1);
 	while(mpz_cmp(x,n) < 0 && perf_square == 0){	//Mientras x < n, calculamos los cuadrados
-		cout << "x = " << mpz_get_str (nullptr, 10, x) << endl;
+		//cout << "x = " << mpz_get_str (nullptr, 10, x) << endl;
 		// sq_x = x^2 - n
 		mpz_mul(sq_x, x, x);
 		mpz_sub(sq_x, sq_x, n);
-		cout << "sq = " << mpz_get_str (nullptr, 10, sq_x) << endl;
+		//cout << "sq = " << mpz_get_str (nullptr, 10, sq_x) << endl;
+		
 		perf_square = mpz_root (sq_x, sq_x, 2);	
-		cout << "Perfect square: " << perf_square << endl;
+		//cout << "Perfect square: " << perf_square << endl;
 		if(perf_square != 0){	// Si sq_x es un cuadrado perfecto
 			mpz_add(p,x,sq_x);	// p = x+y
 			mpz_sub(q,x,sq_x);	// q = x-y
@@ -360,6 +412,182 @@ void ataqueFermat(mpz_t n, mpz_t p, mpz_t q){
 	mpz_clears(x, sq_x, nullptr);
 }
 
+//Funcion con comportamiento pseudoaleatorio que emplea el metodo rho de Pollard
+void paso_rhoPollard(mpz_t x, mpz_t n){
+	//Funcion: f(x) = (x^2 + 1) mod n
+	mpz_mul(x, x, x);
+	mpz_add_ui(x, x, 1);
+	mpz_fdiv_r(x, x, n);
+}
+
+// Factoriza n si p y q son muy cercanos
+bool rhoPollard(mpz_t n, mpz_t p, mpz_t q){
+	mpz_t t, l, dif, mcd;
+	mpz_inits(t, l, dif, mcd, nullptr);
+	unsigned long int init = 2;
+	bool exito = true;
+	mpz_set_ui(t, init);
+	mpz_set_ui(l, init);
+	mpz_set_ui(mcd, 1);
+	
+	while(mpz_cmp_ui(mcd, 1) == 0){
+		//Avanzamos la tortuga un paso
+		paso_rhoPollard(t, n);
+		//Avanzamos la liebre dos pasos
+		paso_rhoPollard(l, n);
+		paso_rhoPollard(l, n);
+		//Calculamos el mcd de la diferencia t - l con n
+		mpz_sub(dif, t, l);
+		if(mpz_cmp_ui(dif, 0) < 0){
+			mpz_mul_si(dif, dif, -1);
+		}
+		cout << "t = " << mpz_get_str (nullptr, 10, t) << endl;
+		cout << "l = " << mpz_get_str (nullptr, 10, l) << endl;
+		cout << "|t - l| = " << mpz_get_str (nullptr, 10, dif) << endl << flush;
+		mpz_gcd (mcd, n, dif);
+	}
+	mpz_set(p, mcd);
+	mpz_fdiv_q(q, n, mcd);	
+	
+	if(mpz_cmp_ui(q, 1) == 0){
+		exito = false;
+	}
+	mpz_clears(t, l, dif, mcd, nullptr);
+	
+	return exito;
+}
+
+
+struct Punto{
+	mpz_t x;
+	mpz_t y;
+};
+
+//Suma en la curva eliptica y^2 = x^3 + ax + b en el cuerpo Z_p
+void sumaCurvaEliptica(Punto suma, Punto s1, Punto s2, mpz_t a, mpz_t b, mpz_t p){
+	mpz_t aux, lambda;
+	Punto s3;
+	mpz_inits(aux, lambda, s3.x, s3.y, nullptr);
+	
+	//Si alguno de los puntos es O, devolvemos el otro punto como solucion
+	if(mpz_cmp_ui(s1.x, 0) < 0){
+		mpz_set(suma.x, s2.x);
+		mpz_set(suma.y, s2.y);
+	}
+	else{
+		if(mpz_cmp_ui(s2.x, 0) < 0){
+			mpz_set(suma.x, s1.x);
+			mpz_set(suma.y, s1.y);
+		}
+		else{
+			//Si tenemos dos puntos de la forma (x,y) y (x,-y), devolvemos O
+			mpz_add(aux, s1.y, s2.y);
+			if(mpz_cmp(s1.x, s2.x) == 0 && mpz_cmp_ui(aux, 0) == 0){
+				mpz_set_si(suma.x, -1);
+				mpz_set_si(suma.y, -1);
+			}
+			//En otro caso
+			else{
+				//Calculamos lambda
+				//Si ambos puntos son iguales
+				if(mpz_cmp(s1.x, s2.x) == 0 && mpz_cmp(s1.y, s2.y) == 0){
+					//lambda = (3x^2 + a)/2y
+					mpz_mul(lambda, s1.x, s1.x);
+					mpz_mul_ui(lambda, lambda, 3);
+					mpz_add(lambda, lambda, a);
+					mpz_mul_ui(aux, s1.y, 2);
+					mpz_invert(aux, aux, p);
+					mpz_mul(lambda, lambda, aux);
+				}
+				//Si ambos numeros son diferentes
+				else{
+					//lambda = (x1 - x2)/(y1 - y2)
+					mpz_sub(lambda, s1.y, s2.y);
+					mpz_sub(aux, s1.x, s2.x);
+					mpz_invert(aux, aux, p);
+					mpz_mul(lambda, lambda, aux);
+				}
+				
+				//Calculamos la coordenada x de la suma
+				//x3 = lambda^2 - x1 - x2 (mod p)
+				mpz_mul(s3.x, lambda, lambda);
+				mpz_sub(s3.x, s3.x, s1.x);
+				mpz_sub(s3.x, s3.x, s2.x);
+				mpz_fdiv_r(suma.x, suma.x, p);
+				
+				//Calculamos la coordenada y
+				//y3 = lambda*(x_1-x_3) - y1 (mod p)
+				mpz_sub(s3.y, s1.x, s3.x);
+				mpz_mul(s3.y, s3.y, lambda);
+				mpz_sub(s3.y, s3.y, s1.y);
+			}
+		}
+	}
+	//Asignamos el resultado a la salida
+	mpz_set(suma.x, s3.x);
+	mpz_set(suma.y, s3.y);
+	
+	mpz_clears(aux, lambda, s3.x, s3.y, nullptr);
+	
+}
+
+void multiplicacionCurvaEliptica(Punto mul, Punto f1, mpz_t f2, mpz_t a, mpz_t b, mpz_t p){
+	Punto p1, p2;
+	mpz_t aux, lambda;
+	mp_limb_t f2_actual;
+	int size_f2, bit_actual;
+	int size_limb = sizeof(mp_limb_t)*8;
+	bool primer_uno_encontrado = false;
+	mpz_inits(aux, lambda, p1.x, p1.y, p2.x, p2.y, nullptr);
+	
+	//Guardamos el punto inicial f1 en p1 y calculamos p2=2*p1=p1+p1
+	mpz_set(mul.x, f1.x);
+	mpz_set(mul.y, f1.y);
+	sumaCurvaEliptica(p2, p1, p1, a, b, p);
+	
+	//Obtenemos la representacion en binario de f2
+	size_f2 = mpz_size(f2);
+	for(int i = size_f2 - 1; i >=0 ; i--){
+		f2_actual = mpz_getlimbn(f2, i);
+		//Iteramos sobre cada bit de f2_actual
+		for(int j = 0; j < size_limb; j--){
+			//Nos quedamos con el bit size_limb - j - 1
+			bit_actual = (bit_actual << j) >> (size_limb-1);
+			//Si no hemos encontrado aun el primer bit a 1, no hacemos nada
+			if(!primer_uno_encontrado){
+				if(bit_actual > 0){
+					primer_uno_encontrado = true;
+				}
+			}
+			else{
+				//Si el bit actual es 1
+				if(bit_actual > 0){
+					sumaCurvaEliptica(mul, mul, p2, a, b, p);	//p1 = p1 + p2
+					sumaCurvaEliptica(p2, p2, p2, a, b, p);		//p2 = 2p2
+				}
+				//Si el bit actual es 0
+				else{
+					sumaCurvaEliptica(p2, mul, p2, a, b, p);	//p2 = p1 + p2
+					sumaCurvaEliptica(mul, mul, mul, a, b, p);	//p1 = 2p1
+				}
+			}
+		}
+	}
+	mpz_clears(aux, lambda, p1.x, p1.y, p2.x, p2.y, nullptr);
+}
+
+void factorizacionCurvasElipticas(mpz_t n, mpz_t p, mpz_t q){
+	//Escogemos una pseudo curva eliptica eligiendo a, b y definiendola en Z_p
+	//Escogemos un punto Q aleatorio de la curva
+	//Calculamos L = maximo numero K-potencia-uniforme. TODO Funcion que devuelva dicho valor para cierto K
+	//Calculamos L*Q
+	//Si mientras se calcula se da que l*Q = O --> l | n --> l | p y l | q (bajar la cota)
+	//Si llegamos a l*Q = A+B: l | p --> En curva eliptica mod p, obtenemos O --> lambda es infinito -->
+	//x_1 - x_2 = 0 (mod p) --> x_1 - x_2 no tiene inverso, por lo que no se puede calcular lambda -->
+	//mcd(x_1 - x_2, N) = p.
+	//Si no llegamos a ninguno de los anteriores --> Subir cota K / Cambiar curva.
+	
+}
 
 int main() {
 	//Inicializacion de numeros aleatorios
@@ -412,8 +640,8 @@ int main() {
 	// Prueba Fermat
 	mpz_t n, p, q;
 	mpz_inits(n, p, q, nullptr);
-	mpz_set_ui(n, 13303);
-	ataqueFermat(n, p, q);
+	mpz_set_ui(n, 63205667035);
+	rhoPollard(n, p, q);
 	cout << "n = " << mpz_get_str (nullptr, 10, n) << endl;
 	cout << "p = " << mpz_get_str (nullptr, 10, p) << endl;
 	cout << "q = " << mpz_get_str (nullptr, 10, q) << endl;
