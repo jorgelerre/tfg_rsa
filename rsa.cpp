@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
+#include <vector>
 
 using namespace std;
 
@@ -704,8 +705,194 @@ bool factorizacionCurvasElipticas(mpz_t p, mpz_t q, const mpz_t n, gmp_randstate
 	mpz_clears(a, b, Q.x, Q.y, aux, inv, f2, nullptr);
 	return exito;
 }
+// Función para encontrar una raíz cuadrada de a módulo p usando el algoritmo de Tonelli-Shanks
+void sqrt_mod(mpz_class &sqrt_a, const mpz_class &a, const mpz_class &n){
+	mpz_class a2, b, q = n-1, s = 0, z, aux;
+	mpz_class M, c, t, R;
+	//cout << "a = " << a << endl;
+	//cout << "n = " << n << endl;
+	//Calculamos a = a (mod p)
+	mpz_mod(a2.get_mpz_t(), a.get_mpz_t(), n.get_mpz_t());
+	//cout << "a2 = " << a2 << endl << flush;
+	
+	//Comprobaciones iniciales
+    if (a2 == 0) {
+        sqrt_a = 0;
+    }
+    else{
+    	if (n == 2) {
+        	sqrt_a = a2 % n;
+    	}
+    	else{
+			if (mpz_legendre(a2.get_mpz_t(), n.get_mpz_t()) != 1) {
+		 	   throw std::invalid_argument("No existe una raíz cuadrada modular");
+			}
+			else{
+				//Calculamos q,s tales que a = q*2^s, con q impar
+				while(q % 2 == 0){
+					q = q / 2;
+					s++;
+				}
+				//Buscamos un numero z que no sea residuo cuadratico en Z_n
+				z = 2;
+				while(mpz_legendre(z.get_mpz_t(),n.get_mpz_t()) != -1){
+					z++;
+				}
+				//cout << "S = " << s << endl;
+				//cout << "Q = " << q << endl;
+				
+				//cout << "Valores iniciales" << endl;
+				M = s;
+				mpz_powm(c.get_mpz_t(), z.get_mpz_t(), q.get_mpz_t(), n.get_mpz_t());
+				mpz_powm(t.get_mpz_t(), a2.get_mpz_t(), q.get_mpz_t(), n.get_mpz_t());
+				aux = (q+1)/2;
+				mpz_powm(R.get_mpz_t(), a2.get_mpz_t(), aux.get_mpz_t(), n.get_mpz_t());
+				/*
+				cout << "M = " << M << endl;
+				cout << "c = " << c << endl;
+				cout << "aux = " << aux << endl;
+				cout << "t = " << t << endl;
+				cout << "R = " << R << endl;
+				*/
+				while (t != 0 && t != 1) {
+					//cout << "Iteracion" << endl;
+					mpz_class tt = t;
+					unsigned int i = 0;
+					for (i = 0; i < M.get_ui(); i++) {
+						if (tt == 1) {
+						    break;
+						}
+						mpz_powm_ui(tt.get_mpz_t(), tt.get_mpz_t(), 2, n.get_mpz_t());
+					}
 
+					if (i == M.get_ui()) {
+						throw std::invalid_argument("No existe una raíz cuadrada modular");
+					}
 
+					mpz_powm_ui(b.get_mpz_t(), c.get_mpz_t(), 1 << (M.get_ui() - i - 1), n.get_mpz_t());
+					//cout << "b = " << b << endl;
+					
+					M = i;
+					//cout << "M = " << M << endl;
+					
+					//c = b^2 (mod n)
+					c = (b*b) % n;
+					//cout << "c = " << c << endl;
+					
+					//R = R*b (mod n)
+					R = (R*b) % n;
+					//cout << "R = " << R << endl;
+					
+					//t = t*b^2 (mod n) = t*c (mod n)
+					t = (t*c) % n;
+					//cout << "t = " << t << endl;
+				}
+				if(t == 0){
+					sqrt_a = 0;
+				}
+				else{
+					sqrt_a = R;
+				}
+				
+			}
+		}
+	}
+    
+    
+}
+
+bool factorizacionCribaCuadratica(mpz_class &p, mpz_class &q, const mpz_class &n, gmp_randstate_t state, const mpz_class &k, const unsigned int &tam_tabla){
+	vector<mpz_class> tabla_criba;
+	vector<mpz_class> base_primos;
+	vector<mpz_class> restos_uniformes;
+	
+	mpz_class p_actual = 3;
+	mpz_class x_ini, entrada, r1, r2, sol1, sol2, it;
+	int s_legendre;
+	bool exito = false;
+	
+	//Buscamos nuestra base de primos
+	//Incluiremos en ella aquellos primos p: n % p = y^2 (es decir, n es resto cuadratico modulo p)
+	//Esto es equivalente a ver si el simbolo de Legendre de n/p es igual a 1.
+	base_primos.push_back(2);
+	while(k > p_actual){
+		s_legendre = mpz_legendre(n.get_mpz_t(),p_actual.get_mpz_t());
+		if(s_legendre == 1){
+			base_primos.push_back(p_actual);
+			cout << p_actual << endl;
+		}
+		mpz_nextprime(p_actual.get_mpz_t(), p_actual.get_mpz_t());
+	}
+	for(int i = 0; i < base_primos.size(); i++){
+		cout << base_primos[i] << endl;
+	}
+	
+	
+	//Creamos la tabla de la criba y la tabla de factores
+	mpz_sqrt(x_ini.get_mpz_t(), n.get_mpz_t());	//Guardamos en x_ini = sqrt(n)
+	x_ini++;
+	for(int i = 0; i < tam_tabla; i++){
+		entrada = i + x_ini;
+		entrada = entrada*entrada - n;
+		tabla_criba.push_back(entrada);
+		cout << "Tabla_criba["<<i<<"] = " << tabla_criba[i] << endl;
+	}
+	
+	vector<vector<bool>> factores(tam_tabla, vector<bool>(base_primos.size(), false));
+	
+	
+	//Calculamos las soluciones de f(x) = x^2 - n = 0 (mod p)
+	//--> x^2 = n (mod p) --> x = sqrt(n) (mod p)
+	//Una vez las tengamos, ejecutamos la criba
+	for(int i = 0; i < base_primos.size(); i++){
+		//Calculamos la raiz cuadrada de n
+		cout << "Primo " << base_primos[i] << " " << endl;
+		sqrt_mod(r1, n, base_primos[i]);
+		
+		
+		//Realizamos la criba con la solucion positiva
+		sol1 = (r1 - x_ini);
+		mpz_mod(sol1.get_mpz_t(), sol1.get_mpz_t(), base_primos[i].get_mpz_t());
+		cout << "criba con " << sol1;
+		it = sol1;
+		while(it < tabla_criba.size()){
+			tabla_criba[it.get_ui()] /= base_primos[i];
+			factores[it.get_ui()][i] = !factores[it.get_ui()][i];
+			it += base_primos[i];
+		}
+		
+		//Calculamos la solucion negativa
+		r2 = (-r1) % base_primos[i];
+		sol2 = (r2 - x_ini);
+		mpz_mod(sol2.get_mpz_t(), sol2.get_mpz_t(), base_primos[i].get_mpz_t());
+		//Realizamos la criba con la solucion negativa
+		if(sol1 != sol2){
+			cout << " y criba con " << sol2;
+			while(sol2 < tabla_criba.size()){
+				tabla_criba[sol2.get_ui()] /= base_primos[i];
+				factores[sol2.get_ui()][i] = !factores[sol2.get_ui()][i];
+				sol2 += base_primos[i];
+			}
+		}
+		cout << endl;
+	}
+	
+	for(int i = 0; i < tabla_criba.size(); i++){
+		if(tabla_criba[i] == 1){
+			restos_uniformes.push_back(i);
+		}
+		cout << "Tabla_criba["<<i<<"] = " << tabla_criba[i] << "\t[";
+		for(int j = 0; j < base_primos.size(); j++){
+			cout << factores[i][j] << "\t";
+		}
+		cout << "]" << endl;
+	}
+	
+	for(int i = 0; i < restos_uniformes.size(); i++){
+		cout << "Resto " << i << " = " << restos_uniformes[i] << endl;
+	}
+	return exito;
+}
 
 
 int main() {
@@ -717,6 +904,7 @@ int main() {
     //Programa principal
 	bool pseudoprimo;
 	long unsigned int r;
+	
 	/*
 	mpz_t p, base;
 	mpz_inits(p, base, nullptr);
@@ -815,6 +1003,7 @@ int main() {
 	cout << "inv = " << mpz_get_str (nullptr, 10, inv) << endl;
 	*/
 	// Prueba Curvas Elipticas
+	/*
 	bool exito;
 	int att = 10;
 	mpz_t n, p, q, k;
@@ -831,7 +1020,18 @@ int main() {
 		cout << "No se ha conseguido factorizar el numero :(" << endl;
 	}
 	mpz_clears(n, p, q, k, nullptr);
+	*/
+	mpz_class sqrt_a;
 	
+	bool exito;
+	int att = 10;
+	mpz_class n, p, q, k;
+	n = 15347;
+	k = 100;
+	
+	//sqrt_mod(sqrt_a, k, n);
+	//cout << sqrt_a << endl;
+	exito = factorizacionCribaCuadratica(p, q, n, state, k, 1000);
 	
     return 0;
 }
