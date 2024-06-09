@@ -797,15 +797,118 @@ void sqrt_mod(mpz_class &sqrt_a, const mpz_class &a, const mpz_class &n){
 			}
 		}
 	}
-    
-    
 }
+
+// Función para transponer una matriz
+vector<vector<bool>> transpose(vector<vector<bool>>& matrix) {
+    int n = matrix.size();
+    int m = matrix[0].size();
+    vector<vector<bool>> transposed(m, vector<bool>(n));
+    
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            transposed[j][i] = matrix[i][j];
+        }
+    }
+    return transposed;
+}
+
+
+// Función para realizar la eliminación gaussiana sobre matrix2 en mod 2
+void gaussian_elimination(vector<vector<bool>>& matrix) {
+    int n = matrix.size();
+    int m = matrix[0].size();
+    
+    int row = 0;
+    for (int col = 0; col < m && row < n; ++col) {
+        // Buscamos una fila con un 1 en la columna col
+        int sel = row;
+        for (int i = row; i < n; ++i) {
+            if (matrix[i][col]) {
+                sel = i;
+                break;
+            }
+        }
+        
+        // Si no hay ningún 1 en la columna col, seguimos
+        if (!matrix[sel][col]) continue;
+
+        // Intercambiamos la fila seleccionada con la fila actual
+        swap(matrix[sel], matrix[row]);
+
+        // Escribimos ceros en todas las filas excepto la actual
+        for (int i = 0; i < n; ++i) {
+            if (i != row && matrix[i][col]) {
+                for (int j = col; j < m; ++j) {
+                    matrix[i][j] = matrix[i][j] ^ matrix[row][j];
+                }
+            }
+        }
+        row++;
+    }
+}
+
+// Funcion para encontrar las soluciones del sistema, dado 
+vector<bool> find_solution(const vector<vector<bool>>& matrix) {
+    int n = matrix.size();
+    int m = matrix[0].size();
+    
+    vector<int> pivot(m, -1); // Índice de fila del pivote para cada columna, -1 si no hay pivote
+
+    // Identificar columnas pivote
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            if (matrix[i][j]) {
+                pivot[j] = i;
+                break;
+            }
+        }
+    }
+
+    // Generamos todas las combinaciones de variables libres
+    int num_free_vars = count(pivot.begin(), pivot.end(), -1);
+    int num_solutions = 1 << num_free_vars; // 2^num_free_vars combinaciones posibles
+
+    for (int k = 1; k < num_solutions; ++k) { // Start from 1 to avoid the trivial solution
+        vector<bool> solution(m, false);
+        int free_var_idx = 0;
+
+        // Asignamos valores a variables libres según la combinación k
+        for (int j = 0; j < m; ++j) {
+            if (pivot[j] == -1) {
+                solution[j] = (k >> free_var_idx) & 1;
+                free_var_idx++;
+            }
+        }
+
+        // Calculamos los valores de las variables pivote
+        for (int j = 0; j < m; ++j) {
+            if (pivot[j] != -1) {
+                bool value = false;
+                for (int l = j + 1; l < m; ++l) {
+                    if (matrix[pivot[j]][l]) {
+                        value ^= solution[l];
+                    }
+                }
+                solution[j] = value;
+            }
+        }
+
+        // Verificamos que la solución no sea trivial
+        if (any_of(solution.begin(), solution.end(), [](bool v) { return v; })) {
+            return solution; // Devolver la primera solución no trivial encontrada
+        }
+    }
+
+    return {}; // Devuelve un vector vacío si no se encuentra ninguna solución no trivial
+}
+
 
 bool factorizacionCribaCuadratica(mpz_class &p, mpz_class &q, const mpz_class &n, gmp_randstate_t state, const mpz_class &k, const unsigned int &tam_tabla){
 	vector<mpz_class> tabla_criba;
 	vector<mpz_class> base_primos;
-	vector<mpz_class> restos_uniformes;
-	
+	vector<mpz_class> x_uniformes;
+	vector<vector<bool>> factores_uniformes;
 	mpz_class p_actual = 3;
 	mpz_class x_ini, entrada, r1, r2, sol1, sol2, it;
 	int s_legendre;
@@ -877,20 +980,92 @@ bool factorizacionCribaCuadratica(mpz_class &p, mpz_class &q, const mpz_class &n
 		cout << endl;
 	}
 	
+	//Extraemos los restos uniformes (=1)
 	for(int i = 0; i < tabla_criba.size(); i++){
 		if(tabla_criba[i] == 1){
-			restos_uniformes.push_back(i);
+			x_uniformes.push_back(i);
+			factores_uniformes.push_back(factores[i]);
 		}
 		cout << "Tabla_criba["<<i<<"] = " << tabla_criba[i] << "\t[";
 		for(int j = 0; j < base_primos.size(); j++){
 			cout << factores[i][j] << "\t";
 		}
 		cout << "]" << endl;
+	}	
+	for(int i = 0; i < x_uniformes.size(); i++){
+		cout << "Resto " << i << " = " << x_uniformes[i] << "\t[";
+		for(int j = 0; j < base_primos.size() - 1; j++){
+			cout << factores_uniformes[i][j] << "\t";
+		}
+		cout << factores_uniformes[i][base_primos.size() - 1] << "]" << endl;
 	}
 	
-	for(int i = 0; i < restos_uniformes.size(); i++){
-		cout << "Resto " << i << " = " << restos_uniformes[i] << endl;
+	//Trasponemos factores_uniformes y ejecutamos la eliminacion gaussiana
+	vector<vector<bool>> factores_uniformes_t = transpose(factores_uniformes);
+	
+	gaussian_elimination(factores_uniformes_t);
+	cout << "Eliminacion gaussiana" << endl;
+	for(int i = 0; i < factores_uniformes_t.size(); i++){
+		for(int j = 0; j < factores_uniformes_t[0].size(); j++){
+			cout << factores_uniformes_t[i][j] << "\t";
+		}
+		cout << endl;
 	}
+	vector<bool> sol = find_solution(factores_uniformes_t);
+	if(sol.size() > 0){
+		cout << "Solucion \n[";
+		for(int i = 0; i < sol.size(); i++){
+			cout << sol[i] << "\t";
+		}
+		cout << "]" << endl;
+		vector<int> factores_r(base_primos.size(), false);
+		for(int i = 0; i < sol.size(); i++){
+			if(sol[i]){
+				for(int j = 0; j < base_primos.size(); j++){
+					factores_r[j] += factores_uniformes[i][j];
+				}
+			}
+		}
+		for(int j = 0; j < base_primos.size(); j++){
+			factores_r[j] /= 2;
+		}
+		cout << "COMPROBACION" << endl;
+		for(int i = 0; i < factores_r.size(); i++){
+			cout << factores_r[i] << "\t";
+		}
+		cout << endl;
+		
+		//Calculamos la congruencia resultante x^2 = y^2 mod n
+		mpz_class x_acum = 1;
+		mpz_class r_acum = 1;
+		mpz_class x_actual;
+		for(int i = 0; i < sol.size(); i++){
+			cout << "i = " << i << endl;
+			if(sol[i] == 1){
+				x_actual = x_ini + x_uniformes[i];
+				cout << "x_uniformes[i] = " << x_uniformes[i] << endl;
+				x_acum *= x_actual;
+			}
+		}
+		for(int j = 0; j < factores_r.size(); j++){
+			r_acum *= base_primos[j]*factores_r[j];
+		}
+		cout << "Congruencia " << endl;
+		
+		mpz_mod(x_acum.get_mpz_t(), x_acum.get_mpz_t(), n.get_mpz_t());
+		mpz_mod(r_acum.get_mpz_t(), r_acum.get_mpz_t(), n.get_mpz_t());
+		cout << "x = " << x_acum << endl;
+		cout << "y = " << r_acum << endl;
+		
+		//Calculamos el mcd de la diferencia de ambos
+		mpz_class dif = (x_acum - r_acum) % n;
+		mpz_gcd(p.get_mpz_t(), dif.get_mpz_t(), n.get_mpz_t());
+		q = n / p;
+		cout << "p = " << p << endl;
+		cout << "q = " << q << endl;
+		exito = true;
+	}
+	
 	return exito;
 }
 
@@ -1027,11 +1202,11 @@ int main() {
 	int att = 10;
 	mpz_class n, p, q, k;
 	n = 15347;
-	k = 100;
+	k = 30;
 	
 	//sqrt_mod(sqrt_a, k, n);
 	//cout << sqrt_a << endl;
-	exito = factorizacionCribaCuadratica(p, q, n, state, k, 1000);
+	exito = factorizacionCribaCuadratica(p, q, n, state, k, 100);
 	
     return 0;
 }
