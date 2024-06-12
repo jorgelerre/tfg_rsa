@@ -36,55 +36,53 @@ unsigned long int generate_random_limb(gmp_randstate_t state) {
  * @base Base donde estudiar la pseudoprimalidad de p
  * @return True si p es pseudoprimo fuerte en base, False en otro caso.
  */
-bool strongPseudoprime(const mpz_t p, const mpz_t base, bool debug = false){
+bool strongPseudoprime(const mpz_class p, const mpz_class base, bool debug = false){
 	bool is_pseudoprime = false;
-	mpz_t mcd;
-	mpz_t q, r;
-	mpz_t t, s;
-	mpz_t b;
-	mpz_inits(mcd, q, r, t, s, b, nullptr);
+	mpz_class mcd;
+	mpz_class q, r;
+	mpz_class t, s;
+	mpz_class b;
 	
 	//Comprobamos que sean coprimos y que el primo que comprobamos sea mayor que 1
-	mpz_gcd(mcd, p, base);
+	mpz_gcd(mcd.get_mpz_t(), p.get_mpz_t(), base.get_mpz_t());
+	
 	if(debug)
-		cout << "mcd de a y la base = " << mpz_get_str (nullptr, 10, mcd) << endl;
-	if(mpz_cmp_ui(mcd,1) == 0 && mpz_cmp_ui(p,1) > 0){
+		cout << "mcd de a y la base = " << mcd << endl;
+		
+	if(mcd == 1 && p > 1){
 		//Calculamos s,t tales que n-1 = 2^s*t con t impar
-		mpz_sub_ui(t, p, 1);			// t = p - 1
-		mpz_set_ui(s, 0);				// s = 0
-		mpz_fdiv_qr_ui(q, r, t, 2);		// Dividimos n-1 entre 2, obteniendo cociente q y resto r
-		while(mpz_cmp_ui(r,0) == 0){	// Si el resto es 0, t es impar aun
-			mpz_set(t, q);				// t = q
-			mpz_add_ui(s, s, 1);		// s = s + 1
-			mpz_fdiv_qr_ui(q, r, t, 2);	// (q,r) = t / 2, t % 2
+		t = p - 1;			// t = p - 1
+		s = 0;				// s = 0
+		mpz_fdiv_qr_ui(q.get_mpz_t(), r.get_mpz_t(), t.get_mpz_t(), 2);		// Dividimos n-1 entre 2, obteniendo cociente q y resto r
+		while(r == 0){	// Si el resto es 0, t es impar aun
+			t = q;				// t = q
+			s = s + 1;		// s = s + 1
+			mpz_fdiv_qr_ui(q.get_mpz_t(), r.get_mpz_t(), t.get_mpz_t(), 2);	// (q,r) = t / 2, t % 2
 		}
 		if(debug){
 			cout << "s = " << s << endl;
 			cout << "t = " << t << endl;
 		}
+		
 		//Una vez obtenidos s,t, calculamos la primera condicion: (base^t (mod p) == 1)
-		mpz_powm(b, base, t, p);	// b = base^t mod p
-		mpz_sub_ui(q, p, 1);		// q = p - 1
-		if(mpz_cmp_ui(b,1) == 0 || mpz_cmp(b,q) == 0){	// Si b = 1 o b = p -1 --> PSEUDOPRIMO
+		mpz_powm(b.get_mpz_t(), base.get_mpz_t(), t.get_mpz_t(), p.get_mpz_t());	// b = base^t mod p
+		q = p - 1;		// q = p - 1
+		if(b == 1 || b == q){	// Si b = 1 o b = p -1 --> PSEUDOPRIMO
 			is_pseudoprime = true;
 		}
 		
 		//Calculamos la segunda condicion: base^{2^e*r} % p = p - 1
-		mpz_set_ui(r, 1);	// r = 1
+		r = 1;	// r = 1
 		//Mientras s > r, b 
-		while(mpz_cmp(s,r) > 0 && !is_pseudoprime){
-			// b = (b*b) % p;
-			mpz_mul(b,b,b);
-			mpz_fdiv_r(b,b,p);
-			
-			if(mpz_cmp(b,q) == 0){	// b == p - 1
+		while(s > r && !is_pseudoprime){
+			b = (b*b) % p;
+			if(b == p - 1){	
 				is_pseudoprime = true;
 			}
-			mpz_add_ui(r, r, 1);	//r++
+			r++;
 		}
 	}
 	
-	mpz_clears(mcd, q, r, t, s, b, nullptr);
 	return is_pseudoprime;
 }
 
@@ -95,12 +93,10 @@ bool strongPseudoprime(const mpz_t p, const mpz_t base, bool debug = false){
  * @state El estado del generador de numeros aleatorios
  * @return True si p es un primo con confianza 1-4^{-it}, false en otro caso.
 */
-bool millerRabin(const mpz_t p, int it, gmp_randstate_t state){
+bool millerRabin(const mpz_class p, int it, gmp_randstate_t state){
 	bool no_fail = true;
 	unsigned long int a;
-	mpz_t b;
-	
-	mpz_init(b);
+	mpz_class b;
 	
 	//Realizamos el test de las divisiones sucesivas con los primeros primos (<8 bits)
 	const int NUM_PRIMES = 54;
@@ -108,10 +104,10 @@ bool millerRabin(const mpz_t p, int it, gmp_randstate_t state){
 			   59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 
 	 		   157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251};
 	
-	if(mpz_cmp_ui(p, 252) > 0){
+	if(p > 252){
 		for(int i = 0; i < NUM_PRIMES && no_fail; i++){
-			mpz_fdiv_r_ui(b,p,primes[i]);
-			if(mpz_cmp_ui(b,0) == 0)
+			b = p % primes[i];
+			if(b == 0)
 				no_fail = false;
 		}
 	}
@@ -119,52 +115,52 @@ bool millerRabin(const mpz_t p, int it, gmp_randstate_t state){
 	//Realizamos it veces la comprobacion de Miller-Rabin
 	for(int i = 0; i < it && no_fail; i++){
 		//Generamos un numero aleatorio (pequeño (1 miembro) para aligerar los calculos)
-		a = generate_random_limb(state);
-		//cout << "Estado generado: " << a << endl;
-		mpz_set_ui(b,a);
+		b = generate_random_limb(state);
 		//Comprobamos la pseudoprimalidad en dicha base
 		no_fail = strongPseudoprime(p, b);
 	}
-	
-	mpz_clear(b);
 	
 	return no_fail;
 }
 
 /**
  * Función para generar un número primo de 'bits' bits
- * @p Dato de tipo mpz_t donde se devuelve el primo generado
  * @bits Numero de bits deseado del primo a generar
  * @state Estado del generador de numeros aleatorios de GMP
+ * @return Un primo del tamanio especificado
  */
-void generate_prime(mpz_t p, int bits, gmp_randstate_t state) {
+mpz_class generate_prime(int bits, gmp_randstate_t state) {
+    mpz_class p;
+    
     do{
-		mpz_rrandomb(p, state, bits); // Genera un número aleatorio de 'bits' bits
+		mpz_rrandomb(p.get_mpz_t(), state, bits); // Genera un número aleatorio de 'bits' bits
 		//Si obtenemos un numero negativo, lo multiplicamos por -1
-		if(mpz_sgn(p) <= 0){
-			mpz_mul_si(p, p, -1);
+		if(p < 0){
+			p *= -1;
 		}
 		//Si el numero es par, le sumamos 1
-		if(!mpz_odd_p(p)){
-			mpz_add_ui(p, p, 1);
+		if(p % 2 == 0){
+			p++;
 		}
 		//Mientras p no pase el test de Miller-Rabin, avanzamos al siguiente numero impar
 		while(!millerRabin(p, 10, state)){
-			mpz_add_ui(p, p, 2);
+			p += 2;
 		}
-    }while(mpz_sizeinbase(p, 2) != bits);
+    }while(mpz_sizeinbase(p.get_mpz_t(), 2) != bits);	//Comprobamos que p no se pase del tamanio especificado
+    
+    return p;
 }
 
 /**
  * Función para generar un número primo robusto de 'bits' bits
- * @p Dato de tipo mpz_t donde se devuelve el primo generado
+ * 
  * @bits Numero de bits deseado del primo a generar
  * @state Estado del generador de numeros aleatorios de GMP
+ * @return Dato de tipo mpz_class con el primo generado
  */
-void generate_strong_prime(mpz_t p, int bits, gmp_randstate_t state) {
-    mpz_t p_0,r,s,t,i,j,aux;
+mpz_class generate_strong_prime(int bits, gmp_randstate_t state) {
+    mpz_class p,p_0,r,s,t,i,j,aux;
     int bits_j, bits_1, bits_2;
-    mpz_inits(p_0, r, s, t, i, j, aux, nullptr);
     //cout << "Buscando s,t..." << endl;
     //Generamos dos primos grandes s, t
     bits_1 = (bits-log2(bits))/2 - 4;
@@ -174,537 +170,495 @@ void generate_strong_prime(mpz_t p, int bits, gmp_randstate_t state) {
     	bits_2 = bits / 2 - 1;
     }
     do{
-		generate_prime(s, bits_1, state);
-		generate_prime(t, bits_2, state);
+		s = generate_prime(bits_1, state);
+		t = generate_prime(bits_2, state);
 		//cout << "s = " << mpz_get_str (nullptr, 10, s) << endl;
 		//cout << "t = " << mpz_get_str (nullptr, 10, t) << endl;
 		
 		//Elegimos un numero aleatorio i
-		mpz_urandomb(i, state, log2(bits));
+		mpz_urandomb(i.get_mpz_t(), state, log2(bits));
 		//cout << "i = " << mpz_get_str (nullptr, 10, i) << endl;
 		//Calculamos r: r sea primo
 		do{
-			mpz_add_ui(i, i, 1);	//i++
-			mpz_mul_ui(r, i, 2);	//r = 2*i*t + 1
-			mpz_mul(r, r, t);
-			mpz_add_ui(r, r, 1);
+			i++;
+			r = 2*i*t + 1;
 		}while(!millerRabin(r,10,state));
 		//cout << "r = " << mpz_get_str (nullptr, 10, r) << endl;
 		//cout << "tamanio r = " << mpz_sizeinbase(r, 2) << endl;
 		//Calculamos p_0
-		//p_0 = 2*s^{r-2} (mod r) *s - 1
-		mpz_sub_ui(p_0, r, 2);		//p_0 = r - 2
-		//cout << "p_01 = " << mpz_get_str (nullptr, 10, p_0) << endl;
-		mpz_powm_sec(p_0, s, p_0, r);	//p_0 = s^(p_0) (mod r)
+		//p_0 = ((2*s^{r-2}) % r) *s - 1
+		p_0 = r - 2;
+		mpz_powm_sec(p_0.get_mpz_t(), s.get_mpz_t(), p_0.get_mpz_t(), r.get_mpz_t());	//p_0 = s^(p_0) (mod r)
 		//cout << "p_02 = " << mpz_get_str (nullptr, 10, p_0) << endl;
-		mpz_mul_ui(p_0, p_0, 2);	//p_0 = 2*p_0
-		//cout << "p_03 = " << mpz_get_str (nullptr, 10, p_0) << endl;
-		mpz_fdiv_r(p_0, p_0, r);	//p_0 = p_0 (mod r)
-		//cout << "p_04 = " << mpz_get_str (nullptr, 10, p_0) << endl;
-		mpz_mul(p_0, p_0, s);		//p_0 = p_0*s
-		//cout << "p_05 = " << mpz_get_str (nullptr, 10, p_0) << endl;
-		mpz_sub_ui(p_0, p_0, 1);	//p_0 = p_0 - 1
-		//cout << "p_06 = " << mpz_get_str (nullptr, 10, p_0) << endl;
+		p_0 = ((2*p_0) % r)*s - 1;
+
 		//if(!mpz_odd_p(p_0))
 			//cout << "p_0 no es impar: repetimos el proceso" << endl;
-	}while(!mpz_odd_p(p_0));	//p_0 debe ser impar, si no, repetimos el proceso
+	}while(p_0 % 2 == 0);	//p_0 debe ser impar, si no, repetimos el proceso
+	/*
 	cout << "tamanio s = " << mpz_sizeinbase(s, 2) << endl;
 	cout << "tamanio t = " << mpz_sizeinbase(t, 2) << endl;
 	cout << "tamanio p_0 = " << mpz_sizeinbase(p_0, 2) << endl;
-    
+    */
     //aux = 2rs
-    mpz_mul_ui(aux, r, 2);
-    mpz_mul(aux, aux, s);
+    aux = 2*r*s;
     
     //Elegimos un numero aleatorio j tal que tenga los bits suficientes para que
     //p tenga 'bits' bits.
-    cout << "Bits aux: " << mpz_sizeinbase(aux, 2) << endl;
-    cout << "Bits: " << bits << endl;
-    bits_j = bits - mpz_sizeinbase(aux, 2);
+    //cout << "Bits aux: " << mpz_sizeinbase(aux.get_mpz_t(), 2) << endl;
+    //cout << "Bits: " << bits << endl;
+    bits_j = bits - mpz_sizeinbase(aux.get_mpz_t(), 2);
     if(bits_j < 1){
     	bits_j = 1;
     }
-    mpz_urandomb(j, state, bits_j);
-    cout << "j = " << mpz_get_str (nullptr, 10, j) << endl;
+    mpz_urandomb(j.get_mpz_t(), state, bits_j);
+    //cout << "j = " << mpz_get_str (nullptr, 10, j) << endl;
     
     //p = 2rsj + p_0
-    mpz_mul(p, aux, j);
-    cout << "p = " << mpz_get_str (nullptr, 10, p) << endl;
-    cout << "p_0 = " << mpz_get_str (nullptr, 10, p_0) << endl;
-    mpz_add(p, p, p_0);
-    cout << "aux = " << mpz_get_str (nullptr, 10, aux) << endl;
-    cout << "p = " << mpz_get_str (nullptr, 10, p) << endl;
+    p = aux*j + p_0; 
+    /*
+    cout << "aux = " << aux << endl;
+    cout << "j = " << j << endl;
+    cout << "p = " << p << endl;
+    */
     //Mientras p no sea primo, le sumamos aux
     while(!millerRabin(p,10,state)){
-    	mpz_add(p, p, aux);
-    	//cout << "p = " << mpz_get_str (nullptr, 10, p) << endl;
+    	p += aux;
+    	//cout << "p = " << p << endl;
     }
     
-    mpz_clears(p_0, r, s, t, i, j, nullptr);
+    return p;
 }
 
 // Función principal para generar claves RSA
-void generate_rsa_key(int bits, mpz_t n, mpz_t e, mpz_t d, gmp_randstate_t state, bool strong_prime = true) {
-	mpz_t p, q, phi_n, mcd;
-	mpz_inits(p, q, phi_n, mcd, nullptr);
+void generate_rsa_key(int bits, mpz_class &n, mpz_class &e, mpz_class &d, gmp_randstate_t state, bool strong_prime = true) {
+	mpz_class p, q, phi_n, mcd;
+	
 	unsigned int e_default = 65537;
 	//Elegimos dos primos p y q aleatoriamente
 	if(strong_prime){
 		cout << "Buscando p..." << endl;
-		generate_strong_prime(p, bits/2, state);
-		cout << "p = " << mpz_get_str (nullptr, 10, p) << endl;
-		cout << "tamanio p = " << mpz_sizeinbase(p, 2) << endl;
+		p = generate_strong_prime(bits/2, state);
+		cout << "p = " << p << endl;
+		cout << "tamanio p = " << mpz_sizeinbase(p.get_mpz_t(), 2) << endl;
 		cout << "Buscando q..." << endl;
-		generate_strong_prime(q, bits/2, state);
-		cout << "q = " << mpz_get_str (nullptr, 10, q) << endl;
-		cout << "Tamanio q = " << mpz_sizeinbase(q, 2) << endl;
-		
+		q = generate_strong_prime(bits/2, state);
+		cout << "q = " << q << endl;
+		cout << "Tamanio q = " << mpz_sizeinbase(q.get_mpz_t(), 2) << endl;
 	}else{
 		cout << "Buscando p..." << endl;
-		generate_prime(p, bits/2, state);
-		cout << "p = " << mpz_get_str (nullptr, 10, p) << endl;
-		cout << "tamanio p = " << mpz_sizeinbase(p, 2) << endl;
+		p = generate_prime(bits/2, state);
+		cout << "p = " << p << endl;
+		cout << "tamanio p = " << mpz_sizeinbase(p.get_mpz_t(), 2) << endl;
 		cout << "Buscando q..." << endl;
-		generate_prime(q, bits/2, state);
-		cout << "q = " << mpz_get_str (nullptr, 10, q) << endl;
-		cout << "Tamanio q = " << mpz_sizeinbase(q, 2) << endl;
+		q = generate_prime(bits/2, state);
+		cout << "q = " << q << endl;
+		cout << "Tamanio q = " << mpz_sizeinbase(q.get_mpz_t(), 2) << endl;
 	}
 	//Calculamos n y phi(n)
 	cout << "Calculando n y phi(n)..." << endl;
-	mpz_mul(n, p, q);		//n = p*q
-	mpz_sub_ui(p, p, 1);
-	mpz_sub_ui(q, q, 1);
-	mpz_mul(phi_n,p, q);
-	mpz_add_ui(p, p, 1);
-	mpz_add_ui(q, q, 1);
-	cout << "n = " << mpz_get_str (nullptr, 10, n) << endl;
-	cout << "phi(n) = " << mpz_get_str (nullptr, 10, phi_n) << endl;
-	if(mpz_sgn(phi_n) <= 0){
-		exit(1);
-	}
+	n = p*q;			
+	phi_n = (p-1)*(q-1);
+
+	cout << "n = " << n << endl;
+	cout << "phi(n) = " << phi_n << endl;
+
 	cout << "Calculando e..." << endl;
-	//Elegimos el exponente de cifrado e = 2^16-1 = 65.535 si < phi_n
-	if(mpz_cmp_ui(phi_n, e_default) > 0){
+	//Elegimos el exponente de cifrado e = 2^16-1 = 65.535 si es < phi_n
+	if(phi_n > e_default){
 		cout << "Asignando e_default..." << endl;
-		mpz_set_ui(e, e_default);
+		e = e_default;
 	}
 	//En otro caso, lo elegimos aleatoriamente (un bit mas pequeño que phi_n)
 	else{
 		cout << "Asignando e aleatorio..." << endl;
-		mpz_urandomb(e, state, mpz_sizeinbase(phi_n, 10)-1);
-		if(!mpz_odd_p(e)){
-			mpz_sub_ui(e, e, 1);
+		mpz_urandomb(e.get_mpz_t(), state, mpz_sizeinbase(phi_n.get_mpz_t(), 10)-1);
+		if(e % 2 == 0){
+			e--;
 		}
 	}
 	
-	mpz_gcd(mcd, e, phi_n);
-	cout << "mcd(e,phi_n) = " << mpz_get_str (nullptr, 10, mcd) << endl;
+	mpz_gcd(mcd.get_mpz_t(), e.get_mpz_t(), phi_n.get_mpz_t());
+	cout << "mcd(e,phi_n) = " << mcd << endl;
 	//Mientras e y phi_n no sean coprimos
-	while(mpz_cmp_ui(mcd, 1) > 0 || mpz_cmp_ui(e, 3) < 0 || mpz_cmp(e, phi_n) > 0 ){
-		
-		if(mpz_cmp_ui(mcd, 1) > 0)
+	while(mcd > 1 || e < 3 || e > phi_n){
+		if(mcd > 1)
 			cout << "Asignando e aleatorio (eran coprimos)..." << endl;
-		if(mpz_cmp_ui(e, 3) < 0)
+		if(e < 3)
 			cout << "Asignando e aleatorio (e era menor que 3)..." << endl;
-		if(mpz_cmp(e, phi_n) > 0){
+		if(e > phi_n){
 			cout << "Asignando e aleatorio (e era mayor que phi(n))..." << endl;
-			cout << "phi(n) = " << mpz_get_str (nullptr, 10, phi_n) << endl;
+			cout << "phi(n) = " << phi_n << endl;
 		}
-		mpz_urandomb(e, state, mpz_sizeinbase(phi_n, 2)-1);
-		if(!mpz_odd_p(e)){
-			mpz_sub_ui(e, e, 1);
+		mpz_urandomb(e.get_mpz_t(), state, mpz_sizeinbase(phi_n.get_mpz_t(), 2)-1);
+		if(e % 2 == 0){
+			e--;
 		}
 		
-		mpz_gcd(mcd, e, phi_n);
-		cout << "e      = " << mpz_get_str (nullptr, 10, e) << endl;
-		cout << "mcd(e,phi_n) = " << mpz_get_str (nullptr, 10, mcd) << endl;
+		mpz_gcd(mcd.get_mpz_t(), e.get_mpz_t(), phi_n.get_mpz_t());
+		cout << "e      = " << e << endl;
+		cout << "mcd(e,phi_n) = " << mcd << endl;
 	}
 	
 	cout << "Calculando d..." << endl;
 	
 	//Calculamos el inverso de e en Z_phi(n) = d
-	mpz_invert(d, e, phi_n);
+	mpz_invert(d.get_mpz_t(), e.get_mpz_t(), phi_n.get_mpz_t());
 	
 	//TODO: Comprobar ataque Wiener
 	
-	mpz_clears(p, q, phi_n, mcd, nullptr);
 }
 
-void cifra_RSA(mpz_t m_cifrado, mpz_t m, mpz_t e, mpz_t n){
+mpz_class cifra_RSA(mpz_class m, mpz_class e, mpz_class n){
+	mpz_class m_cifrado;
 	//Hacemos la operacion m_cifrado = m^e (mod n)
-	mpz_powm(m_cifrado, m, e, n);
+	mpz_powm(m_cifrado.get_mpz_t(), m.get_mpz_t(), e.get_mpz_t(), n.get_mpz_t());
+	return m_cifrado;
+}
+
+mpz_class descifra_RSA(mpz_class m, mpz_class e, mpz_class n){
+	return cifra_RSA(m, e, n);
 }
 
 // Factoriza n si p y q son muy cercanos
-void ataqueFermat(mpz_t p, mpz_t q, mpz_t n, gmp_randstate_t state){
-	mpz_t x, u, v, r;
-	mpz_inits(x, u, v, r, nullptr);
+mpz_class ataqueFermat(mpz_class n, gmp_randstate_t state){
+	mpz_class p, x, u, v, r;
+	
 	int perf_square = 0;
-	//Comprobamos que no sea primo
+	//Comprobamos que n no sea primo
 	if(millerRabin(n, 10, state)){
-		mpz_set(p, n);
-		mpz_set_ui(q, 1);
+		p = n;
 	}
 	else{
 		//Calculamos el valor inicial sqrt(n)
 		//Comprobamos si n es un cuadrado perfecto
-		perf_square = mpz_root (x, n, 2);
+		perf_square = mpz_root(x.get_mpz_t(), n.get_mpz_t(), 2);
 		if(perf_square != 0){	//Si lo es, damos como solucion la raiz
-			mpz_set(p, x);
-			mpz_set(q, x);
+			p = x;
 		}
-		
-		//u = 2x + 1
-		mpz_mul_ui(u, x, 2);
-		mpz_add_ui(u, u, 1);
-		//v = 1
-		mpz_set_ui(v, 1);
-		//r = x^2 - n
-		mpz_mul(r, x, x);
-		mpz_sub(r, r, n);
-		
-		while(mpz_cmp_si(r,0) != 0){
-			if(mpz_cmp_si(r,0) > 0){
-				mpz_sub(r,r,v);
-				mpz_add_ui(v,v,2);
+		//Si no, ejecutamos el ataque de Fermat
+		else{
+			u = 2*x + 1;
+			v = 1;
+			//r = x^2 - n
+			r = x*x - n;
+			
+			while(r != 0){
+				if(r > 0){
+					r = r - v;
+					v = v + 2;
+				}
+				else{
+					r = r + u;
+					u = u + 2;
+				}
 			}
-			else{
-				mpz_add(r,r,u);
-				mpz_add_ui(u,u,2);
-			}
+			
+			//p = (u+v-2)/2
+			p = (u+v-2)/2;
 		}
-		
-		//p = (u+v-2)/2
-		mpz_add(p, u, v);
-		mpz_sub_ui(p, p, 2);
-		mpz_fdiv_q_ui(p, p, 2);
-		//q = (u-v)/2
-		mpz_sub(q, u, v);
-		mpz_fdiv_q_ui(q, q, 2);
 	}
-	mpz_clears(x, u, v, r, nullptr);
+	
+	return p;
 }
 
-// Factoriza n si p y q son muy cercanos
-void ataqueKraitchik(mpz_t p, mpz_t q, mpz_t n, gmp_randstate_t state){
-	mpz_t x, sq_x;
-	mpz_inits(x, sq_x, nullptr);
+
+mpz_class ataqueKraitchik(mpz_class n, gmp_randstate_t state){
+	mpz_class x, sq_x, p;
+	
 	int perf_square = 0;
 	//Comprobamos que no sea primo
 	if(millerRabin(n, 10, state)){
-		mpz_set(p, n);
-		mpz_set_ui(q, 1);
+		p = n;
 	}
 	else{
 		//Calculamos el valor inicial sqrt(n) (con redondeo hacia arriba)
 		//A su vez, comprobamos si n es un cuadrado perfecto
-		perf_square = mpz_root (x, n, 2);
+		perf_square = mpz_root(x.get_mpz_t(), n.get_mpz_t(), 2);
 		if(perf_square != 0){	//Si lo es, damos como solucion la raiz
-			mpz_set(p, x);
-			mpz_set(q, x);
+			p = x;
 		}
 		
-		mpz_add_ui(x, x, 1);
-		while(mpz_cmp(x,n) < 0 && perf_square == 0){	//Mientras x < n, calculamos los cuadrados
-			//cout << "x = " << mpz_get_str (nullptr, 10, x) << endl;
-			// sq_x = x^2 - n
-			mpz_mul(sq_x, x, x);
-			mpz_sub(sq_x, sq_x, n);
-			//cout << "sq = " << mpz_get_str (nullptr, 10, sq_x) << endl;
+		while(x < n && perf_square == 0){	//Mientras x < n y no haya solucion, calculamos los cuadrados
+			x++;
+			//cout << "x = " << x << endl;
+			sq_x = x*x - n;
+			//cout << "sq = " << sq_x << endl;
 			
-			perf_square = mpz_root (sq_x, sq_x, 2);	
+			perf_square = mpz_root(sq_x.get_mpz_t(), sq_x.get_mpz_t(), 2);	
 			//cout << "Perfect square: " << perf_square << endl;
 			if(perf_square != 0){	// Si sq_x es un cuadrado perfecto
-				mpz_add(p,x,sq_x);	// p = x+y
-				mpz_sub(q,x,sq_x);	// q = x-y
+				p = x + sq_x;
 			}
-			mpz_add_ui(x,x,1);
 		}
 	}
-	mpz_clears(x, sq_x, nullptr);
+	return p;
 }
 
 //Funcion con comportamiento pseudoaleatorio que emplea el metodo rho de Pollard
-void paso_rhoPollard(mpz_t x, mpz_t n){
+mpz_class paso_rhoPollard(mpz_class x, mpz_class n){
 	//Funcion: f(x) = (x^2 + 1) mod n
-	mpz_mul(x, x, x);
-	mpz_add_ui(x, x, 1);
-	mpz_fdiv_r(x, x, n);
+	return (x*x + 1) % n;
 }
 
 // Factoriza n si p y q son muy cercanos
-bool rhoPollard(mpz_t p, mpz_t q, mpz_t n, gmp_randstate_t state){
-	mpz_t t, l, dif, mcd;
-	mpz_inits(t, l, dif, mcd, nullptr);
-	unsigned long int init = 2;
-	bool exito = true;
+mpz_class rhoPollard(mpz_class n, gmp_randstate_t state){
+	mpz_class p, t, l, dif, mcd = 1;
 	
 	//Comprobamos que no sea primo
 	if(millerRabin(n, 10, state)){
-		mpz_set(p, n);
-		mpz_set_ui(q, 1);
+		p = n;
 	}
 	else{
-		mpz_set_ui(t, init);
-		mpz_set_ui(l, init);
-		mpz_set_ui(mcd, 1);
+		//Tortuga y liebre empiezan en el mismo estado (2)
+		t = 2;
+		l = 2;
 		
-		while(mpz_cmp_ui(mcd, 1) == 0){
+		while(mcd == 1){
 			//Avanzamos la tortuga un paso
-			paso_rhoPollard(t, n);
+			t = paso_rhoPollard(t, n);
 			//Avanzamos la liebre dos pasos
-			paso_rhoPollard(l, n);
-			paso_rhoPollard(l, n);
+			l = paso_rhoPollard(paso_rhoPollard(l, n), n);
+
 			//Calculamos el mcd de la diferencia t - l con n
-			mpz_sub(dif, t, l);
-			if(mpz_cmp_ui(dif, 0) < 0){
-				mpz_mul_si(dif, dif, -1);
+			dif = t - l;
+			if(dif < 0){
+				dif *= -1;
 			}
-			cout << "t = " << mpz_get_str (nullptr, 10, t) << endl;
-			cout << "l = " << mpz_get_str (nullptr, 10, l) << endl;
-			cout << "|t - l| = " << mpz_get_str (nullptr, 10, dif) << endl << flush;
-			mpz_gcd (mcd, n, dif);
+			cout << "t = " << t << endl;
+			cout << "l = " << l << endl;
+			cout << "|t - l| = " << dif << endl << flush;
+			mpz_gcd (mcd.get_mpz_t(), n.get_mpz_t(), dif.get_mpz_t());
 		}
-		mpz_set(p, mcd);
-		mpz_fdiv_q(q, n, mcd);	
+		p = mcd;
 		
-		if(mpz_cmp_ui(q, 1) == 0){
-			exito = false;
-		}
 	}
-	mpz_clears(t, l, dif, mcd, nullptr);
 	
-	return exito;
+	return p;
 }
 
 
 struct Punto{
-	mpz_t x;
-	mpz_t y;
+	mpz_class x;
+	mpz_class y;
 };
 
 //Suma en la curva eliptica y^2 = x^3 + ax + b en el cuerpo Z_p
-int sumaCurvaEliptica(Punto &suma, const Punto s1, const Punto s2, const mpz_t a, 
-					  const mpz_t b, const mpz_t p, mpz_t inv){
-	mpz_t aux, lambda;
+Punto sumaCurvaEliptica(const Punto s1, const Punto s2, const mpz_class a, 
+					  const mpz_class b, const mpz_class p, mpz_class &inv){
 	Punto s3;
+	mpz_class aux, lambda;
 	int exito = 1;	//Comprueba si el calculo de la inversa se hizo correctamente
-	mpz_inits(aux, lambda, s3.x, s3.y, nullptr);
-	//cout << "Suma curva eliptica" << endl;
 	
-	//cout << "s1 = [" << mpz_get_str (nullptr, 10, s1.x) << ", " 
-	//				  << mpz_get_str (nullptr, 10, s1.y) << "]" << endl;		  
-	//cout << "s2 = [" << mpz_get_str (nullptr, 10, s2.x) << ", " 
-	//				  << mpz_get_str (nullptr, 10, s2.y) << "]" << endl;
-	//cout << "p = " << mpz_get_str (nullptr, 10, s2.x) << endl;
+	//cout << "Suma curva eliptica" << endl;
+	//cout << "s1 = [" <<  s1.x << ", " 
+	//				  <<  s1.y << "]" << endl;		  
+	//cout << "s2 = [" << s2.x << ", " 
+	//				  << s2.y << "]" << endl;
+	//cout << "p = " << p << endl;
 	//Si alguno de los puntos es O, devolvemos el otro punto como solucion
-	if(mpz_cmp_ui(s1.x, 0) < 0){
-		mpz_set(s3.x, s2.x);
-		mpz_set(s3.y, s2.y);
+	if(s1.x == 0){
+		s3.x = s2.x;
+		s3.y = s2.y;
 		//cout << "Sumando 1 es \"O\": devolviendo s2" << endl;
 	}
 	else{
-		if(mpz_cmp_ui(s2.x, 0) < 0){
-			mpz_set(s3.x, s1.x);
-			mpz_set(s3.y, s1.y);
+		if(s2.x < 0){
+			s3.x = s1.x;
+			s3.y = s1.y;
 			//cout << "Sumando 2 es \"O\": devolviendo s1" << endl;
 		}
 		else{
 			//Si tenemos dos puntos de la forma (x,y) y (x,-y), devolvemos O
-			
-			mpz_add(aux, s1.y, s2.y);
+			aux = s1.y + s2.y;
 			//cout << "Suma curva eliptica sin O" << endl;
-			mpz_mod(aux, aux, p);
+			mpz_mod(aux.get_mpz_t(), aux.get_mpz_t(), p.get_mpz_t());
 			//cout << "Suma curva eliptica sin O" << endl;
-			if(mpz_cmp(s1.x, s2.x) == 0 && mpz_cmp_ui(aux, 0) == 0){
-				mpz_set_si(s3.x, -1);
-				mpz_set_si(s3.y, -1);
+			if(s1.x == s2.x && aux == 0){
+				s3.x = -1;
+				s3.y = -1;
 				//cout << "Puntos opuestos: devolviendo \"O\"" << endl;
 			}
 			//En otro caso
 			else{
 				//Calculamos lambda
 				//Si ambos puntos son iguales
-				if(mpz_cmp(s1.x, s2.x) == 0 && mpz_cmp(s1.y, s2.y) == 0){
+				if(s1.x == s2.x && s1.y == s2.y){
 					//cout << "Puntos iguales: calculando lambda" << endl;
 					//lambda = (3x^2 + a)/2y
-					mpz_mul(lambda, s1.x, s1.x);
-					mpz_mul_ui(lambda, lambda, 3);
-					mpz_add(lambda, lambda, a);
-					mpz_mul_ui(inv, s1.y, 2);
-					exito = mpz_invert(aux, inv, p);	//Si no hay inversa, devuelve 0
-					mpz_mul(lambda, lambda, aux);
-					mpz_mod(lambda, lambda, p);
+					lambda = 3*s1.x*s1.x + a;
+					inv = 2*s1.y;
+					//Si no hay inversa, devuelve 0
+					exito = mpz_invert(aux.get_mpz_t(), inv.get_mpz_t(), p.get_mpz_t());	
+					if(exito != 0){
+						lambda = lambda * aux;
+						mpz_mod(lambda.get_mpz_t(), lambda.get_mpz_t(), p.get_mpz_t());
+					}
 				}
 				//Si ambos numeros son diferentes
 				else{
 					//cout << "Puntos diferentes: calculando lambda" << endl;
-					//lambda = (x1 - x2)/(y1 - y2)
-					mpz_sub(lambda, s1.y, s2.y);
-					mpz_sub(inv, s1.x, s2.x);
-					exito = mpz_invert(aux, inv, p);	//Si no hay inversa, devuelve 0
-					//if(exito == 0)
-						//cout << "No existe el inverso de " << inv << " en Z_" << p << endl;
-					
-					mpz_mul(lambda, lambda, aux);
-					mpz_mod(lambda, lambda, p);
+					//lambda = (y1 - y2)/(x1 - x2)
+					lambda = s1.y - s2.y;
+					inv = s1.x - s2.x;
+					//Si no hay inversa, devuelve 0
+					exito = mpz_invert(aux.get_mpz_t(), inv.get_mpz_t(), p.get_mpz_t());	
+					if(exito != 0){
+						lambda = lambda*aux;	
+						mpz_mod(lambda.get_mpz_t(), lambda.get_mpz_t(), p.get_mpz_t());
+					}
 				}
-				
-				//Calculamos la coordenada x de la suma
-				//x3 = lambda^2 - x1 - x2 (mod p)
-				mpz_mul(s3.x, lambda, lambda);
-				mpz_sub(s3.x, s3.x, s1.x);
-				mpz_sub(s3.x, s3.x, s2.x);
-				mpz_mod(s3.x, s3.x, p);
-				
-				//Calculamos la coordenada y
-				//y3 = lambda*(x_1-x_3) - y1 (mod p)
-				mpz_sub(s3.y, s1.x, s3.x);
-				mpz_mul(s3.y, s3.y, lambda);
-				mpz_sub(s3.y, s3.y, s1.y);
-				mpz_mod(s3.y, s3.y, p);
+				if(exito != 0){
+					//Calculamos la coordenada x de la suma
+					//x3 = lambda^2 - x1 - x2 (mod p)
+					s3.x = lambda*lambda - s1.x - s2.x;
+					mpz_mod(s3.x.get_mpz_t(), s3.x.get_mpz_t(), p.get_mpz_t());
+					
+					//Calculamos la coordenada y
+					//y3 = lambda*(x_1-x_3) - y1 (mod p)
+					s3.y = lambda*(s1.x - s3.x) - s1.y;
+					mpz_mod(s3.y.get_mpz_t(), s3.y.get_mpz_t(), p.get_mpz_t());
+				}
+				else{
+					//Punto no definido
+					s3.x = -2;
+					s3.y = -2;
+				}
 			}
 		}
 	}
-	//Asignamos el resultado a la salida
-	mpz_set(suma.x, s3.x);
-	mpz_set(suma.y, s3.y);
 	
-	mpz_clears(aux, lambda, s3.x, s3.y, nullptr);
-	return exito;
+	return s3;
 }
 
-int multiplicacionCurvaEliptica(Punto &mul, const Punto f1, const mpz_t f2, const mpz_t a, 
-								const mpz_t b, const mpz_t p, mpz_t inv){
-	Punto p1, p2;
-	mpz_t aux, lambda, f2_2;
+Punto multiplicacionCurvaEliptica(const Punto f1, const mpz_class f2, const mpz_class a, 
+								const mpz_class b, const mpz_class p, mpz_class &inv){
+	Punto p2, mul;
+	mpz_class r, lambda, f2_2;
 	mp_limb_t f2_actual;
 	int size_f2, bit_actual, resto;
 	int size_limb = sizeof(mp_limb_t)*8;
 	int exito = 1;	//Comprueba si el calculo de la inversa se hizo correctamente en las sumas
 	int i = 0;
 	bool primer_uno_encontrado = false;
-	mpz_inits(aux, lambda, p1.x, p1.y, p2.x, p2.y, f2_2, nullptr);
+	
 	//cout << "Inicio multiplicacion" << endl;
 	
 	//Inicializamos la multiplicacion en "O"
-	mpz_set_si(mul.x, -1);
-	mpz_set_si(mul.y, -1);
-	//Guardamos el punto a multiplicar P en p2
-	mpz_set(p2.x, f1.x);
-	mpz_set(p2.y, f1.y);
-	mpz_set(f2_2, f2);
-	//cout << "p2.x = " << mpz_get_str (nullptr, 10, p2.x) << endl;
-	//cout << "p2.y = " << mpz_get_str (nullptr, 10, p2.y) << endl;
+	mul.x = -1;
+	mul.y = -1;
 	
-	while(mpz_cmp_ui(f2_2,0) > 0 && exito != 0){
+	//Guardamos el punto a multiplicar P en p2
+	p2.x = f1.x;
+	p2.y = f1.y;
+	f2_2 = f2;
+	//cout << "p2.x = " << p2.x << endl;
+	//cout << "p2.y = " << p2.y << endl;
+	
+	while(f2_2 > 0 && exito != 0){
 		//cout << "Iteracion " << i << endl;
 		//Calculamos el siguiente bit
-		//cout << "f2_2 = " << mpz_get_str (nullptr, 2, f2_2) << endl;
-		resto = mpz_fdiv_qr_ui(f2_2, aux, f2_2, 2);
+		//cout << "f2_2 = " << f2_2 << endl;
+		resto = mpz_fdiv_qr_ui(f2_2.get_mpz_t(), r.get_mpz_t(), f2_2.get_mpz_t(), 2);
 		//cout << "Resto: " << resto << endl;
-		if(mpz_cmp_ui(aux, 1) == 0){
-			exito = sumaCurvaEliptica(mul, mul, p2, a, b, p, inv);
+		if(r == 1){
+			mul = sumaCurvaEliptica(mul, p2, a, b, p, inv);
+			if(mul.x == -2){
+				exito = 0;
+			}
 			//cout << "Exito 1: " << exito << endl;
 		}
 		//Calculamos la siguiente potencia de 2 de P
 		if(exito != 0){
-			exito = sumaCurvaEliptica(p1, p2, p2, a, b, p, inv);
-			mpz_set(p2.x, p1.x);
-			mpz_set(p2.y, p1.y);
+			p2 = sumaCurvaEliptica(p2, p2, a, b, p, inv);
+			if(p2.x == -2){
+				exito = 0;
+			}
 			//cout << "Exito 2: " << exito << endl;
 		}
 		i++;
 	}
-	
-	mpz_clears(aux, lambda, p1.x, p1.y, p2.x, p2.y, nullptr);
+	//Devolvemos un punto no existente si falla alguna suma
+	if(exito == 0){
+		mul.x = -2;
+		mul.y = -2;
+	}
 
-	return exito;
+	return mul;
 }
 
 //Calcula el numero mas grande tal que sea k-potencia-suave
-void maxKPotenciaSuave(mpz_t kps, const mpz_t k){
-	mpz_t p_actual, p_potencia;
-	mpz_inits (p_actual, p_potencia, nullptr);
+mpz_class maxKPotenciaSuave(const mpz_class k){
+	mpz_class kps, p_actual, p_potencia;
 	
-	mpz_set_ui(kps, 1);
-	mpz_set_ui(p_actual, 2);
+	kps = 1;
+	p_actual = 2;
 	
 	//Mientras el primo actual no supere el valor de K
-	while(mpz_cmp(p_actual, k) < 0){
-		mpz_set(p_potencia, p_actual);
+	while(p_actual < k){
+		p_potencia = p_actual;
 		//Calculamos el valor de p_actual^e tal que no supere K
-		while(mpz_cmp(p_potencia, k) < 0){
-			mpz_mul(p_potencia,p_potencia,p_actual);	//p_potencia = p_actual^{n+1}
+		while(p_potencia < k){
+			p_potencia = p_potencia * p_actual;	//p_potencia = p_actual^{n+1}
 		}
-		mpz_divexact(p_potencia, p_potencia, p_actual);	//Dividimos para que p_potencia < k
+		//Dividimos para que p_potencia < k
+		mpz_divexact(p_potencia.get_mpz_t(), p_potencia.get_mpz_t(), p_actual.get_mpz_t());	
 		//Multiplicamos dicho valor en el acumulador
-		mpz_mul(kps, kps, p_potencia);
+		kps = kps * p_potencia;
 		//Pasamos al siguiente primo
-		mpz_nextprime(p_actual, p_actual);
+		mpz_nextprime(p_actual.get_mpz_t(), p_actual.get_mpz_t());
 	}
-	mpz_clears(p_actual, p_potencia, nullptr);
+	
+	return kps;
 }
 
-bool factorizacionCurvasElipticas(mpz_t p, mpz_t q, const mpz_t n, gmp_randstate_t state, const mpz_t k, const unsigned int att){
-	Punto Q;
-	mpz_t a, b, aux, inv, f2;
-	mpz_inits(a, b, Q.x, Q.y, aux, inv, f2, nullptr);
+mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state, const mpz_class k, const unsigned int att){
+	Punto Q, M;
+	mpz_class p, a, b, aux, inv, L;
+	
 	mp_limb_t random;
 	int encontrado_inv = 1;	//Comprueba si el calculo de la inversa se hizo correctamente en las sumas
 	bool mul_O = false; 	//Indica si hemos llegado a obtener O como resultado de la multiplicacion
 	bool exito = false;
 	
-	//Comprobamos que no sea primo
+	//Comprobamos que n no sea primo
 	if(millerRabin(n, 10, state)){
-		mpz_set(p, n);
-		mpz_set_ui(q, 1);
-		exito = true;
+		p = n;
 	}
 	else{
 		for(int i = 0; i < att && !exito; i++){
 			//Escogemos una pseudo curva eliptica eligiendo a, b y definiendola en Z_n
-			mpz_urandomm (a, state, n);
-			mpz_urandomm (b, state, n);
+			mpz_urandomm (a.get_mpz_t(), state, n.get_mpz_t());
+			mpz_urandomm (b.get_mpz_t(), state, n.get_mpz_t());
 			//Escogemos un punto Q aleatorio de la curva
-			mpz_urandomm (Q.x, state, n);	//Elegimos x aleatorio
+			mpz_urandomm (Q.x.get_mpz_t(), state, n.get_mpz_t());	//Elegimos x aleatorio
 			//Calculamos y como x^3 + ax + b (mod n)
-			mpz_mul(aux, Q.x, Q.x);
-			mpz_mul(Q.y, aux, Q.x);
-			mpz_addmul(Q.y, a, Q.x);
-			mpz_add(Q.y, Q.y, b);
-			mpz_mod(Q.y, Q.y, n);
+			Q.y = Q.x * Q.x * Q.x + a*Q.x + b;
+			mpz_mod(Q.y.get_mpz_t(), Q.y.get_mpz_t(), n.get_mpz_t());
 			
-			mpz_set_ui(f2, 2);
-			
-			//Usamos el factorial
-			/*
-			while(encontrado_inv != 0 && !mul_O && mpz_cmp(f2, k) < 0){
-				encontrado_inv = multiplicacionCurvaEliptica(Q, Q, f2, a, b, n, inv);
-				mpz_add_ui(f2, f2, 1);
-				if(mpz_cmp_ui(Q.x, 0) < 0){
-					mul_O = true;
-				}
-			}
-			*/
 			//Calculamos L = maximo numero K-potencia-uniforme. 
-			maxKPotenciaSuave(f2, k);
+			L = maxKPotenciaSuave(k);
 			//cout << "hola 1 " << endl << flush;
 			//Realizamos la multiplicacion
-			encontrado_inv = multiplicacionCurvaEliptica(Q, Q, f2, a, b, n, inv);
+			M = multiplicacionCurvaEliptica(Q, L, a, b, n, inv);
 			//cout << "hola 2 " << endl<< flush;
 			//Si hemos encontrado un elemento no invertible, obtenemos un factor de n
-			if(encontrado_inv == 0){
+			if(M.x == -2){
 				//Calculamos gcd
-				mpz_gcd (p, inv, n);
-				mpz_fdiv_q(q, n, p);
+				mpz_gcd (p.get_mpz_t(), inv.get_mpz_t(), n.get_mpz_t());
 				exito = true;
 			}
 		}
 	}
-	mpz_clears(a, b, Q.x, Q.y, aux, inv, f2, nullptr);
-	return exito;
+	//Si no hemos conseguido factorizar, devolvemos p = n
+	if(!exito){
+		p = n;
+	}
+	
+	return p;
 }
+
+
 // Función para encontrar una raíz cuadrada de a módulo p usando el algoritmo de Tonelli-Shanks
 void sqrt_mod(mpz_class &sqrt_a, const mpz_class &a, const mpz_class &n){
 	mpz_class a2, b, q = n-1, s = 0, z, aux;
@@ -848,7 +802,7 @@ void gaussian_elimination(vector<vector<bool>>& matrix) {
     }
 }
 
-// Funcion para encontrar las soluciones del sistema
+// Funcion para encontrar las soluciones del sistema anterior
 vector<vector<bool>> find_solutions(const vector<vector<bool>>& matrix) {
     int n = matrix.size();
     int m = matrix[0].size();
@@ -856,59 +810,7 @@ vector<vector<bool>> find_solutions(const vector<vector<bool>>& matrix) {
     vector<int> pivot(m, -1); // Índice de fila del pivote para cada columna, -1 si no hay pivote
     vector<vector<bool>> solutions;
 
-    // Identificar columnas pivote
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < m; ++j) {
-            if (matrix[i][j]) {
-                pivot[j] = i;
-                break;
-            }
-        }
-    }
-
-    // Generar todas las combinaciones de variables libres
-    int num_free_vars = count(pivot.begin(), pivot.end(), -1);
-    int num_solutions = 1 << num_free_vars; // 2^num_free_vars combinaciones posibles
-
-    for (int k = 0; k < num_solutions; ++k) {
-        vector<bool> solution(m, false);
-        int free_var_idx = 0;
-
-        // Asignar valores a variables libres según la combinación k
-        for (int j = 0; j < m; ++j) {
-            if (pivot[j] == -1) {
-                solution[j] = (k >> free_var_idx) & 1;
-                free_var_idx++;
-            }
-        }
-
-        // Calcular valores de las variables pivote
-        for (int j = 0; j < m; ++j) {
-            if (pivot[j] != -1) {
-                bool value = false;
-                for (int l = j + 1; l < m; ++l) {
-                    if (matrix[pivot[j]][l]) {
-                        value ^= solution[l];
-                    }
-                }
-                solution[j] = value;
-            }
-        }
-
-        solutions.push_back(solution);
-    }
-
-    return solutions;
-}
-
-// Funcion para encontrar las soluciones del sistema, dado 
-vector<bool> find_solution(const vector<vector<bool>>& matrix) {
-    int n = matrix.size();
-    int m = matrix[0].size();
-    
-    vector<int> pivot(m, -1); // Índice de fila del pivote para cada columna, -1 si no hay pivote
-
-    // Identificar columnas pivote
+    // Identificamos columnas pivote
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < m; ++j) {
             if (matrix[i][j]) {
@@ -922,11 +824,11 @@ vector<bool> find_solution(const vector<vector<bool>>& matrix) {
     int num_free_vars = count(pivot.begin(), pivot.end(), -1);
     int num_solutions = 1 << num_free_vars; // 2^num_free_vars combinaciones posibles
 
-    for (int k = 1; k < num_solutions; ++k) { // Start from 1 to avoid the trivial solution
+    for (int k = 0; k < num_solutions; ++k) {
         vector<bool> solution(m, false);
         int free_var_idx = 0;
 
-        // Asignamos valores a variables libres según la combinación k
+        // Asignar valores a variables libres según la combinación k
         for (int j = 0; j < m; ++j) {
             if (pivot[j] == -1) {
                 solution[j] = (k >> free_var_idx) & 1;
@@ -947,24 +849,21 @@ vector<bool> find_solution(const vector<vector<bool>>& matrix) {
             }
         }
 
-        // Verificamos que la solución no sea trivial
-        if (any_of(solution.begin(), solution.end(), [](bool v) { return v; })) {
-            return solution; // Devolver la primera solución no trivial encontrada
-        }
+        solutions.push_back(solution);
     }
 
-    return {}; // Devuelve un vector vacío si no se encuentra ninguna solución no trivial
+    return solutions;
 }
 
 
-bool factorizacionCribaCuadratica(mpz_class &p, mpz_class &q, const mpz_class &n, gmp_randstate_t state, const mpz_class &k, const unsigned int &tam_tabla){
+mpz_class factorizacionCribaCuadratica(const mpz_class &n, gmp_randstate_t state, const mpz_class &k, const unsigned int &tam_tabla){
 	vector<mpz_class> tabla_criba;
 	vector<mpz_class> base_primos;
 	vector<mpz_class> x_uniformes;
 	vector<vector<bool>> factores_uniformes;
 	vector<vector<int>> factores_uniformes_count;
 	mpz_class p_actual = 3;
-	mpz_class x_ini, entrada, r1, r2, sol1, sol2, it;
+	mpz_class x_ini, entrada, r1, r2, sol1, sol2, it, p, q;
 	int s_legendre;
 	bool exito = false;
 	
@@ -1158,7 +1057,7 @@ bool factorizacionCribaCuadratica(mpz_class &p, mpz_class &q, const mpz_class &n
 	else{
 		cout << "El sistema no tiene solucion :(" << endl;
 	}
-	return exito;
+	return p;
 }
 
 
@@ -1173,7 +1072,7 @@ int main() {
 	long unsigned int r;
 	
 	/*
-	mpz_t p, base;
+	mpz_class p, base;
 	mpz_inits(p, base, nullptr);
 	mpz_set_ui(p, 503);
 	mpz_set_ui(base, 2);
@@ -1272,22 +1171,21 @@ int main() {
 	// Prueba Curvas Elipticas
 	
 	bool exito;
-	int att = 10;
-	mpz_t n, p, q, k;
-	mpz_inits(p, q, n, k, nullptr);
+	unsigned int att = 1000;
+	mpz_class n, p, q, k;
+	
 	//mpz_set_ui(n, 265905204186593);
-	mpz_set_ui(n, 15167);
-	mpz_set_ui(k, 50);
-	exito = factorizacionCurvasElipticas(p, q, n, state, k, att);
-	if(exito){
-		cout << "n = " << mpz_get_str (nullptr, 10, n) << endl;
-		cout << "p = " << mpz_get_str (nullptr, 10, p) << endl;
-		cout << "q = " << mpz_get_str (nullptr, 10, q) << endl;
+	n = 265905204186593;
+	k = 30;
+	p = factorizacionCurvasElipticas(n, state, k, att);
+	if(p != n){
+		cout << "n = " << n << endl;
+		cout << "p = " << p << endl;
+		cout << "q = " << q << endl;
 	}
 	else{
 		cout << "No se ha conseguido factorizar el numero :(" << endl;
 	}
-	mpz_clears(n, p, q, k, nullptr);
 	
 	mpz_class sqrt_a;
 	
@@ -1298,7 +1196,7 @@ int main() {
 	
 	//sqrt_mod(sqrt_a, k, n);
 	//cout << sqrt_a << endl;
-	exito = factorizacionCribaCuadratica(p1, q1, n1, state, k1, 1000000);
+	p = factorizacionCribaCuadratica(n1, state, k1, 1000000);
 	
     return 0;
 }
