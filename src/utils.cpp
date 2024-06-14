@@ -96,7 +96,7 @@ bool strongPseudoprime(const mpz_class p, const mpz_class base, bool debug){
  * @return True si p es un primo con confianza 1-4^{-it}, false en otro caso.
 */
 bool millerRabin(const mpz_class p, int it, gmp_randstate_t state){
-	bool no_fail = true;
+	bool no_fail = true, primo_bajo = false;
 	mpz_class b;
 	
 	//Realizamos el test de las divisiones sucesivas con los primeros primos (<8 bits)
@@ -107,18 +107,26 @@ bool millerRabin(const mpz_class p, int it, gmp_randstate_t state){
 	
 	for(int i = 0; i < NUM_PRIMES && no_fail; i++){
 		b = p % primes[i];
-		if(b == 0)
-			no_fail = false;
+		if(b == 0){
+			if(p == primes[i]){	//Si p es igual al primo, devolvemos que es primo
+				no_fail = true;
+				primo_bajo = true;
+			}	
+			else{	//Si no, p es multiplo del primo, y por tanto es compuesto
+				no_fail = false;
+			}
+		}	
 	}
 	
 	//Realizamos it veces la comprobacion de Miller-Rabin
-	for(int i = 0; i < it && no_fail; i++){
-		//Generamos un numero aleatorio (pequeño (1 miembro) para aligerar los calculos)
-		b = generate_random_limb(state);
-		//Comprobamos la pseudoprimalidad en dicha base
-		no_fail = strongPseudoprime(p, b);
+	if(!primo_bajo){
+		for(int i = 0; i < it && no_fail; i++){
+			//Generamos un numero aleatorio (pequeño (1 miembro) para aligerar los calculos)
+			b = generate_random_limb(state);
+			//Comprobamos la pseudoprimalidad en dicha base
+			no_fail = strongPseudoprime(p, b);
+		}
 	}
-	
 	return no_fail;
 }
 
@@ -134,6 +142,7 @@ mpz_class generate_prime(unsigned int bits, gmp_randstate_t state) {
     do{
 		mpz_rrandomb(p.get_mpz_t(), state, bits); // Genera un número aleatorio de 'bits' bits
 		//Si obtenemos un numero negativo, lo multiplicamos por -1
+		
 		if(p < 0){
 			p *= -1;
 		}
@@ -141,10 +150,12 @@ mpz_class generate_prime(unsigned int bits, gmp_randstate_t state) {
 		if(p % 2 == 0){
 			p++;
 		}
+		
 		//Mientras p no pase el test de Miller-Rabin, avanzamos al siguiente numero impar
 		while(!millerRabin(p, 10, state)){
 			p += 2;
 		}
+		
     }while(mpz_sizeinbase(p.get_mpz_t(), 2) != bits);	//Comprobamos que p no se pase del tamanio especificado
     
     return p;
@@ -159,7 +170,7 @@ mpz_class generate_prime(unsigned int bits, gmp_randstate_t state) {
  */
 mpz_class generate_strong_prime(unsigned int bits, gmp_randstate_t state, bool debug) {
     mpz_class p,p_0,r,s,t,i,j,aux;
-    unsigned int bits_j, bits_1, bits_2;
+    int bits_j, bits_1, bits_2;
     
     if(debug) cout << "Buscando s,t..." << endl;
     //Generamos dos primos grandes s, t
@@ -231,7 +242,7 @@ mpz_class generate_strong_prime(unsigned int bits, gmp_randstate_t state, bool d
     while(!millerRabin(p,10,state)){
     	p += aux;
     }
-    if(debug) cout << "p final = " << p << endl;
+    if(debug) cout << "primo final = " << p << endl;
     return p;
 }
 

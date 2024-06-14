@@ -38,7 +38,7 @@ vector<vector<bool>> gaussian_elimination(const vector<vector<bool>> &matrix);
 vector<vector<bool>> find_solutions(const vector<vector<bool>>& matrix);
 
 mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k, 
-									   const unsigned int &tam_tabla, bool debug = false);
+									   const unsigned int tam_tabla, bool debug = false);
 
 #endif
 

@@ -11,7 +11,7 @@ using namespace std;
 
 
 // Función principal para generar claves RSA
-void generate_rsa_key(unsigned int bits, mpz_class &n, mpz_class &e, mpz_class &d, gmp_randstate_t state, bool strong_prime, bool debug) {
+void generate_rsa_key(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bits, gmp_randstate_t state, bool strong_prime, bool debug) {
     mpz_class p, q, phi_n, mcd;
     
     unsigned int e_default = 65537;
@@ -95,7 +95,7 @@ void generate_rsa_key(unsigned int bits, mpz_class &n, mpz_class &e, mpz_class &
 
     // Calculamos el inverso de e en Z_phi(n) = d
     mpz_invert(d.get_mpz_t(), e.get_mpz_t(), phi_n.get_mpz_t());
-
+	
     // TODO: Comprobar ataque Wiener
 }
 

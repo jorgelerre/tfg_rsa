@@ -10,141 +10,191 @@
 
 using namespace std;
 
+void muestraMenuPrincipal() {
+    cout << "========== Menu ===========\n";
+    cout << "1. Crear clave RSA\n";
+    cout << "2. Cifrar mensaje\n";
+    cout << "3. Descifrar mensaje\n";
+    cout << "4. Atacar clave\n";
+    cout << "5. Salir\n";
+    cout << "===========================\n";
+    cout << "Seleccione una opción: ";
+}
+
+void muestraMenu1() {
+    cout << "========= Menu 1 ==========\n";
+    cout << "1. Primos aleatorios\n";
+    cout << "2. Primos robustos\n";
+    cout << "3. Volver\n";
+    cout << "===========================\n";
+    cout << "Seleccione una opción: ";
+}
+
+
+void muestraMenu4() {
+    cout << "========= Menu 2 ==========\n";
+    cout << "1. Ataque de Fermat\n";
+    cout << "2. Ataque de Kraitchik\n";
+    cout << "3. Ataque rho de Pollard\n";
+    cout << "4. Ataque p-1\n";
+    cout << "5. Ataque de factorizacion por curvas elipticas\n";
+    cout << "6. Ataque de factorizacion por criba cuadratica\n";
+    cout << "7. Ataque de Wiener\n";
+    cout << "8. Volver\n";
+    cout << "===========================\n";
+    cout << "Seleccione una opción: ";
+}
+
+void muestraMenu3() {
+	
+	
+}
+
+
+
 int main() {
+	bool seguir = true, debug = true, clave_iniciada = false;
+	mpz_class n, e, d, p, q;
+    int opcion, opcion2;
+    unsigned int tam_n, tam_tabla, att;
+    string input;
+    mpz_class mensaje;
+    mpz_class k;
+    
 	//Inicializacion de numeros aleatorios
 	gmp_randstate_t state;
 	gmp_randinit_default(state);
     gmp_randseed_ui(state, static_cast<unsigned long>(time(nullptr)));
     
+    
     //Programa principal - Menu
+	while (seguir) {
+        muestraMenuPrincipal();
+        cin >> opcion;
+        
+        switch (opcion) {
+		    case 1:
+		    	muestraMenu1();
+		    	cin >> opcion2;
+		        while(opcion2 < 1 || opcion2 > 3){
+			        cout << "Opción inválida. Por favor, intentalo de nuevo.\n" << endl;
+		        	cin >> opcion2;
+		        }
+		        //Si la opcion no es 3, pedimos el tamanio deseado de clave
+		        if(opcion2 != 3){
+		        	cout << "Introduce el numero de bits deseado para n: " ;
+		        	cin >> tam_n;
+		        	while(tam_n < 0){
+		        		cout << "El numero debe ser mayor que 5. Intentalo de nuevo: " << endl;
+		        		cin >> tam_n;
+		        	}
+		        	if(opcion2 == 1){
+		        		generate_rsa_key(n, e, d, tam_n, state, false, debug);
+		        	}
+		        	else{
+		        		generate_rsa_key(n, e, d, tam_n, state, true, debug);
+		        	}
+		        	cout << "----Clave generada----" << endl;
+		        	cout << "n = " << n << endl;
+		        	cout << "e = " << e << endl;
+		        	cout << "d = " << d << endl;
+		        	cout << "tamanio n = " << mpz_sizeinbase(n.get_mpz_t(), 2) << endl;
+		        	clave_iniciada = true;
+				}
+		        break;
+		    case 2:
+		        if(clave_iniciada){
+		        	cout << "Introduce el numero a cifrar: ";
+		        	cin >> mensaje;
+		        	cout << "Mensaje = " << mensaje << endl;
+		        	cout << "Cifrado = " << cifra_RSA(mensaje, e, n) << endl;
+		        }
+		        else{
+		        	cout << "Necesitas inicializar la clave para usar esta opcion.\n";
+		        }
+		        break;
+		    case 3:
+		        if(clave_iniciada){
+		        	cout << "Introduce el numero a descifrar: ";
+		        	cin >> mensaje;
+		        	cout << "Cifrado = " << mensaje << endl;
+		        	cout << "Mensaje original = " << descifra_RSA(mensaje, d, n) << endl;
+		        }
+		        else{
+		        	cout << "Necesitas inicializar la clave para usar esta opcion.\n";
+		        }
+		        break;
+		    case 4:
+		        if(clave_iniciada){
+		        	muestraMenu4();
+		        	cin >> opcion2;
+		        	while(opcion2 < 1 || opcion2 > 8){
+					    cout << "Opción inválida. Por favor, intentalo de nuevo.\n" << endl;
+				    	cin >> opcion2;
+				    }
+				    switch(opcion2){
+				    	case 1:	//Factorizacion de Fermat
+				    		cout << "Factorizacion de Fermat\n";
+				    		p = ataqueFermat(n, state);
+				    		break;
+				    	case 2: //Factorizacion de Kraitchik
+				    		cout << "Factorizacion de Kraitchik\n";
+				    		p = ataqueKraitchik(n, state);
+				    		break;
+				    	case 3:	//Rho de Pollard
+				        	cout << "Rho de Pollard\n";
+				        	p = rhoPollard(n, state);
+				        	break;
+				        case 4:	//p-1 de Pollard
+							cout << "Ataque p-1\n";
+							break;
+						case 5: //Ataque de factorizacion por curvas elipticas
+							cout << "Ataque de factorizacion por curvas elipticas\n";
+							cout << "Introduce un valor de k: ";
+							cin >> k;
+							cout << "k = " << k << endl;
+							cout << "Introduce el numero de intentos a realizar: ";
+							cin >> att;
+							cout << "att = " << k << endl;
+							p = factorizacionCurvasElipticas(n, state, k, att);
+							break;
+						case 6:	//Ataque de factorizacion por criba cuadratica
+							cout << "Ataque de factorizacion por criba cuadratica\n";
+							cout << "Introduce un valor de k: ";
+							cin >> k;
+							cout << "k = " << k << endl;
+							cout << "Introduce un valor de tam_tabla: ";
+							cin >> tam_tabla;
+							cout << "tam_tabla = " << tam_tabla << endl;
+							p = factorizacionCribaCuadratica(n, k, tam_tabla, true);
+							break;
+						case 7: //Ataque de Wiener
+							cout << "Ataque de Wiener\n";
+							break;
+						case 8: //Volver
+							break;
+				    }
+				    if(opcion2 != 8){
+						q = n / p;
+						cout << "n = " << n << endl;
+						cout << "p = " << p << endl;
+						cout << "q = " << q << endl;
+					}
+		        }
+		        else{
+		        	cout << "Necesitas inicializar la clave para usar esta opcion.\n";
+		        }
+		        break;
+		    case 5:
+		        cout << "Saliendo del programa...\n";
+		        seguir = false;
+		        break;
+		    default:
+		        cout << "Opción inválida. Por favor, intenta de nuevo.\n";
+		        break;
+    	}
+    }
 	
-	
-	/*
-	bool pseudoprimo;
-	long unsigned int r;
-	mpz_class p, base;
-	mpz_inits(p, base, nullptr);
-	mpz_set_ui(p, 503);
-	mpz_set_ui(base, 2);
-	
-	pseudoprimo = millerRabin(p, 5, state);
-	cout << "Pseudoprimo: " << pseudoprimo << endl;
-	
-	generate_prime(p, 32, state);
-	r = mpz_getlimbn(p, 0);
-	cout << "Primo encontrado: " << r << endl;
-	
-	mpz_clears(p, base, state, nullptr);
-	
-	//Prueba RSA
-	mpz_t n, e, d, prueba;
-	mpz_inits(n, e, d, prueba, nullptr);
-	
-	//Generamos las claves de RSA
-	generate_rsa_key(30, n, e, d, state, true);
-	
-	//Generamos un mensaje de prueba que enviar
-	mpz_set_ui(prueba, 5);
-	
-	cout << "n = " << mpz_get_str (nullptr, 10, n) << endl;
-	cout << "bits n = " << mpz_sizeinbase(n, 2) << endl;
-	cout << "e = " << mpz_get_str (nullptr, 10, e) << endl;
-	cout << "d = " << mpz_get_str (nullptr, 10, d) << endl;
-	cout << "prueba = " << mpz_get_str (nullptr, 10, prueba) << endl;
-	
-	cifra_RSA(prueba, prueba, e, n);
-	cout << "criptograma = " << mpz_get_str (nullptr, 10, prueba) << endl;
-	cifra_RSA(prueba, prueba, d, n);
-	
-	cout << "prueba = m^(e*d) (mod n) = " << mpz_get_str (nullptr, 10, prueba) << endl;
-	
-	mpz_clears(n, e, d, prueba, nullptr);
-	*/
-	// Prueba suma en curvas elipticas
-	/*
-	mpz_t a, b, p, inv;
-	Punto suma, s1, s2;
-	int res = 0;
-	mpz_inits(suma.x, suma.y, s1.x, s1.y, s2.x, s2.y, a, b, p, inv, nullptr);
-	
-	mpz_set_ui(s1.x, 9696);
-	mpz_set_ui(s1.y, 506);
-	
-	mpz_set_ui(s2.x, 7878);
-	mpz_set_ui(s2.y, 10200);
-	
-	mpz_set_ui(a, 1);
-	mpz_set_ui(b, 1);
-	mpz_set_ui(p, 10403);
-	
-	
-	res = sumaCurvaEliptica(suma, s1, s2, a, b, p, inv);
-	cout << "res = " << res << endl;
-	cout << "suma = [" << mpz_get_str (nullptr, 10, suma.x) << ", " 
-		 		       << mpz_get_str (nullptr, 10, suma.y) << "]" << endl;
-	cout << "s1 = [" << mpz_get_str (nullptr, 10, s1.x) << ", " 
-		 		       << mpz_get_str (nullptr, 10, s1.y) << "]" << endl;
-	cout << "s2 = [" << mpz_get_str (nullptr, 10, s2.x) << ", " 
-		 		       << mpz_get_str (nullptr, 10, s2.y) << "]" << endl;
-	cout << "a = " << mpz_get_str (nullptr, 10, a) << endl;
-	cout << "b = " << mpz_get_str (nullptr, 10, b) << endl;
-	cout << "p = " << mpz_get_str (nullptr, 10, p) << endl;
-	cout << "inv = " << mpz_get_str (nullptr, 10, inv) << endl;
-	
-	mpz_clears(suma.x, suma.y, s1.x, s1.y, s2.x, s2.y, a, b, p, inv, nullptr);
-	*/
-	// Prueba multiplicacion en curvas elipticas
-	/*
-	mpz_t a, b, p, inv, f2, k;
-	Punto mul, f1;
-	mpz_inits(mul.x, mul.y, f1.x, f1.y, f2, a, b, p, inv, k, nullptr);
-	mpz_set_ui(f1.x, 0);
-	mpz_set_ui(f1.y, 1);
-	mpz_set_ui(k,20);
-	maxKPotenciaSuave(f2, k);
-	//mpz_set_ui(f2, 1);
-	mpz_set_ui(a, 1);
-	mpz_set_ui(b, 1);
-	mpz_set_ui(p, 10403);
-	
-	multiplicacionCurvaEliptica(mul, f1, f2, a, b, p, inv);
-	cout << "mul = [" << mpz_get_str (nullptr, 10, mul.x) << ", " 
-					  << mpz_get_str (nullptr, 10, mul.y) << "]" << endl;
-	cout << "f1 = [" << mpz_get_str (nullptr, 10, f1.x) << ", " 
-				     << mpz_get_str (nullptr, 10, f1.y) << "]" << endl;
-	cout << "f2 = " << mpz_get_str (nullptr, 10, f2) << endl;
-	cout << "a = " << mpz_get_str (nullptr, 10, a) << endl;
-	cout << "b = " << mpz_get_str (nullptr, 10, b) << endl;
-	cout << "p = " << mpz_get_str (nullptr, 10, p) << endl;
-	cout << "inv = " << mpz_get_str (nullptr, 10, inv) << endl;
-	*/
-	// Prueba Curvas Elipticas
-	unsigned int att = 1000;
-	mpz_class n, p, q, k;
-	
-	//mpz_set_ui(n, 265905204186593);
-	n = 265905204186593;
-	k = 30;
-	p = factorizacionCurvasElipticas(n, state, k, att);
-	if(p != n){
-		cout << "n = " << n << endl;
-		cout << "p = " << p << endl;
-		cout << "q = " << n / p << endl;
-	}
-	else{
-		cout << "No se ha conseguido factorizar el numero :(" << endl;
-	}
-	
-	mpz_class sqrt_a;
-	
-	mpz_class n1, p1, q1, k1;
-	n1 = 265905204186593;
-	//n1 = 15167;
-	k1 = 1000;
-	
-	//sqrt_mod(sqrt_a, k, n);
-	//cout << sqrt_a << endl;
-	p = factorizacionCribaCuadratica(n1, k1, 1000000);
 	
     return 0;
 }
