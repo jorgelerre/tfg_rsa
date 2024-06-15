@@ -151,6 +151,13 @@ int main() {
 				        	break;
 				        case 4:	//p-1 de Pollard
 							cout << "Ataque p-1\n";
+							cout << "Introduce un valor de k: ";
+							cin >> k;
+							cout << "k = " << k << endl;
+							cout << "Introduce el numero de intentos a realizar: ";
+							cin >> att;
+							cout << "att = " << att << endl;
+							p = p1Pollard(n, state, k, att);
 							break;
 						case 5: //Ataque de factorizacion por curvas elipticas
 							cout << "Ataque de factorizacion por curvas elipticas\n";
@@ -159,7 +166,7 @@ int main() {
 							cout << "k = " << k << endl;
 							cout << "Introduce el numero de intentos a realizar: ";
 							cin >> att;
-							cout << "att = " << k << endl;
+							cout << "att = " << att << endl;
 							p = factorizacionCurvasElipticas(n, state, k, att);
 							break;
 						case 6:	//Ataque de factorizacion por criba cuadratica

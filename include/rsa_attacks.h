@@ -12,6 +12,9 @@ mpz_class ataqueKraitchik(mpz_class n, gmp_randstate_t state);
 
 mpz_class rhoPollard(mpz_class n, gmp_randstate_t state, bool debug = false);
 
+mpz_class p1Pollard(mpz_class n, gmp_randstate_t state, const mpz_class k, 
+					const unsigned int att, bool debug = true);
+
 mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state, const mpz_class k, 
 									   const unsigned int att = 1000, bool debug = false);
 

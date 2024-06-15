@@ -132,6 +132,45 @@ mpz_class rhoPollard(mpz_class n, gmp_randstate_t state, bool debug){
 	return p;
 }
 
+mpz_class p1Pollard(mpz_class n, gmp_randstate_t state, const mpz_class k, const unsigned int att, bool debug){
+	mpz_class a, B, x, mcd;
+	bool exito = false;
+	for(unsigned int i = 0; i < att && !exito; i++){
+		//Seleccionamos una base a
+		mpz_urandomm (a.get_mpz_t(), state, n.get_mpz_t());
+		
+		//Calculamos B
+		B = maxKPotenciaSuave(k);
+		
+		//Calculamos a^B mod n
+		mpz_powm(x.get_mpz_t(), a.get_mpz_t(), B.get_mpz_t(), n.get_mpz_t());
+		
+		//Calculamos el mcd de a^B-1 y n
+		x = x - 1;
+		mpz_gcd(mcd.get_mpz_t(), x.get_mpz_t(), n.get_mpz_t());
+		
+		//Si mcd no es trivial, hemos conseguido un factor de n
+		if(mcd < n && mcd > 1)
+			exito = true;
+			
+		if(debug){
+			if(mcd == n){
+				cout << "mcd = n : k es demasiado alto." << endl;
+			}
+			else{
+				if(mcd == 1){
+					cout << "mcd = 1 : k es demasiado bajo o la base no es la adecuada." << endl;
+				}
+				else{
+					cout << "mcd = " << mcd << ". Hemos factorizado n." << endl;
+				}
+			}
+		}
+	}
+	
+	return mcd;
+}
+
 
 mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state, const mpz_class k,
 									   const unsigned int att, bool debug){
