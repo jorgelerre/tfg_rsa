@@ -25,7 +25,8 @@ void muestraMenu1() {
     cout << "========= Menu 1 ==========\n";
     cout << "1. Primos aleatorios\n";
     cout << "2. Primos robustos\n";
-    cout << "3. Volver\n";
+    cout << "3. Primos aleatorios, d vulnerable\n";
+    cout << "4. Volver\n";
     cout << "===========================\n";
     cout << "Seleccione una opción: ";
 }
@@ -53,14 +54,14 @@ void muestraMenu3() {
 
 
 int main() {
-	bool seguir = true, debug = true, clave_iniciada = false;
+	bool seguir = true, debug = true, clave_iniciada = false, res;
 	mpz_class n, e, d, p, q;
     int opcion, opcion2;
     unsigned int tam_n, tam_tabla, att;
     string input;
     mpz_class mensaje;
     mpz_class k;
-    
+    mpz_class d_res;
 	//Inicializacion de numeros aleatorios
 	gmp_randstate_t state;
 	gmp_randinit_default(state);
@@ -76,23 +77,26 @@ int main() {
 		    case 1:
 		    	muestraMenu1();
 		    	cin >> opcion2;
-		        while(opcion2 < 1 || opcion2 > 3){
+		        while(opcion2 < 1 || opcion2 > 4){
 			        cout << "Opción inválida. Por favor, intentalo de nuevo.\n" << endl;
 		        	cin >> opcion2;
 		        }
 		        //Si la opcion no es 3, pedimos el tamanio deseado de clave
-		        if(opcion2 != 3){
+		        if(opcion2 != 4){
 		        	cout << "Introduce el numero de bits deseado para n: " ;
 		        	cin >> tam_n;
-		        	while(tam_n < 0){
-		        		cout << "El numero debe ser mayor que 5. Intentalo de nuevo: " << endl;
+		        	while(tam_n < 10){
+		        		cout << "El numero debe ser mayor que 10. Intentalo de nuevo: " << endl;
 		        		cin >> tam_n;
 		        	}
 		        	if(opcion2 == 1){
-		        		generate_rsa_key(n, e, d, tam_n, state, false, debug);
+		        		generate_rsa_key(n, e, d, tam_n, state, false, false, debug);
 		        	}
 		        	else{
-		        		generate_rsa_key(n, e, d, tam_n, state, true, debug);
+		        		if(opcion2 == 2)
+		        			generate_rsa_key(n, e, d, tam_n, state, true, false, debug);
+		        		else
+		        			generate_rsa_key(n, e, d, tam_n, state, false, true, debug);
 		        	}
 		        	cout << "----Clave generada----" << endl;
 		        	cout << "n = " << n << endl;
@@ -170,11 +174,22 @@ int main() {
 							break;
 						case 7: //Ataque de Wiener
 							cout << "Ataque de Wiener\n";
+							res = ataqueWiener(d_res, p, q, e, n, true);
+							if(res){
+								cout << "Clave privada d = " << d << endl;
+								cout << "Clave privada d calculada = " << d_res << endl;
+								cout << "n = " << n << endl;
+								cout << "p = " << p << endl;
+								cout << "q = " << q << endl;
+							}
+							else{
+								cout << "El ataque no ha funcionado." << endl;
+							}
 							break;
 						case 8: //Volver
 							break;
 				    }
-				    if(opcion2 != 8){
+				    if(opcion2 < 7){
 						q = n / p;
 						cout << "n = " << n << endl;
 						cout << "p = " << p << endl;

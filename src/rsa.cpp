@@ -11,7 +11,7 @@ using namespace std;
 
 
 // Función principal para generar claves RSA
-void generate_rsa_key(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bits, gmp_randstate_t state, bool strong_prime, bool debug) {
+void generate_rsa_key(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bits, gmp_randstate_t state, bool strong_prime, bool low_d, bool debug) {
     mpz_class p, q, phi_n, mcd;
     
     unsigned int e_default = 65537;
@@ -56,47 +56,62 @@ void generate_rsa_key(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bit
         cout << "Calculando e..." << endl;
     }
 
-    // Elegimos el exponente de cifrado e = 2^16-1 = 65.537 si es < phi_n
-    if (phi_n > e_default) {
-        if (debug) cout << "Asignando e_default..." << endl;
-        e = e_default;
-    } else {
-        if (debug) cout << "Asignando e aleatorio..." << endl;
-        mpz_urandomb(e.get_mpz_t(), state, mpz_sizeinbase(phi_n.get_mpz_t(), 10) - 1);
-        if (e % 2 == 0) {
-            e--;
-        }
-    }
+	if(!low_d){
+		// Elegimos el exponente de cifrado e = 2^16-1 = 65.537 si es < phi_n
+		if (phi_n > e_default) {
+		    if (debug) cout << "Asignando e_default..." << endl;
+		    e = e_default;
+		} else {
+		    if (debug) cout << "Asignando e aleatorio..." << endl;
+		    mpz_urandomb(e.get_mpz_t(), state, mpz_sizeinbase(phi_n.get_mpz_t(), 10) - 1);
+		    if (e % 2 == 0) {
+		        e--;
+		    }
+		}
 
-    mpz_gcd(mcd.get_mpz_t(), e.get_mpz_t(), phi_n.get_mpz_t());
-    if (debug) cout << "mcd(e,phi_n) = " << mcd << endl;
+		mpz_gcd(mcd.get_mpz_t(), e.get_mpz_t(), phi_n.get_mpz_t());
+		if (debug) cout << "mcd(e,phi_n) = " << mcd << endl;
 
-    // Mientras e y phi_n no sean coprimos
-    while (mcd > 1 || e < 3 || e > phi_n) {
-        if (mcd > 1 && debug) cout << "Asignando e aleatorio (no eran coprimos)..." << endl;
-        if (e < 3 && debug) cout << "Asignando e aleatorio (e era menor que 3)..." << endl;
-        if (e > phi_n && debug) {
-                cout << "Asignando e aleatorio (e era mayor que phi(n))..." << endl;
-                cout << "phi(n) = " << phi_n << endl;
-        }
-        mpz_urandomb(e.get_mpz_t(), state, mpz_sizeinbase(phi_n.get_mpz_t(), 2) - 1);
-        if (e % 2 == 0) {
-            e--;
-        }
+		// Mientras e y phi_n no sean coprimos
+		while (mcd > 1 || e < 3 || e > phi_n) {
+		    if (mcd > 1 && debug) cout << "Asignando e aleatorio (no eran coprimos)..." << endl;
+		    if (e < 3 && debug) cout << "Asignando e aleatorio (e era menor que 3)..." << endl;
+		    if (e > phi_n && debug) {
+	            cout << "Asignando e aleatorio (e era mayor que phi(n))..." << endl;
+	            cout << "phi(n) = " << phi_n << endl;
+		    }
+		    mpz_urandomb(e.get_mpz_t(), state, mpz_sizeinbase(phi_n.get_mpz_t(), 2) - 1);
+		    if (e % 2 == 0) {
+		        e--;
+		    }
 
-        mpz_gcd(mcd.get_mpz_t(), e.get_mpz_t(), phi_n.get_mpz_t());
-        if (debug) {
-            cout << "e = " << e << endl;
-            cout << "mcd(e,phi_n) = " << mcd << endl;
-        }
-    }
+		    mpz_gcd(mcd.get_mpz_t(), e.get_mpz_t(), phi_n.get_mpz_t());
+		    if (debug) {
+		        cout << "e = " << e << endl;
+		        cout << "mcd(e,phi_n) = " << mcd << endl;
+		    }
+		}
 
-    if (debug) cout << "Calculando d..." << endl;
+		if (debug) cout << "Calculando d..." << endl;
 
-    // Calculamos el inverso de e en Z_phi(n) = d
-    mpz_invert(d.get_mpz_t(), e.get_mpz_t(), phi_n.get_mpz_t());
-	
-    // TODO: Comprobar ataque Wiener
+		// Calculamos el inverso de e en Z_phi(n) = d
+		mpz_invert(d.get_mpz_t(), e.get_mpz_t(), phi_n.get_mpz_t());
+	}
+	//Si la opcion low_d esta activada, usaremos un d vulnerable al ataque de Wiener
+	else{
+		//Generamos un exponente de descifrado d pequeño
+		cout << "n = " << n << endl;
+		mpz_class lim = sqrt(sqrt(n))/3;
+		cout << "Cota d: " << lim << endl;
+		do{
+			mpz_urandomm(d.get_mpz_t(), state, lim.get_mpz_t());
+			cout << "d generado = " << d << endl;
+			mpz_gcd(mcd.get_mpz_t(), d.get_mpz_t(), phi_n.get_mpz_t());
+			cout << "mcd = " << mcd << endl;
+		}while(d < 2 || mcd > 1);
+		// Calculamos el inverso de d en Z_phi(n) = e
+		mpz_invert(e.get_mpz_t(), d.get_mpz_t(), phi_n.get_mpz_t());
+	}
 }
 
 

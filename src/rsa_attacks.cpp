@@ -133,181 +133,6 @@ mpz_class rhoPollard(mpz_class n, gmp_randstate_t state, bool debug){
 }
 
 
-
-
-//Suma en la curva eliptica y^2 = x^3 + ax + b en el cuerpo Z_p
-Punto sumaCurvaEliptica(const Punto s1, const Punto s2, const mpz_class a, 
-					    const mpz_class b, const mpz_class p, mpz_class &inv, bool debug){
-	Punto s3;
-	mpz_class aux, lambda;
-	int exito = 1;	//Comprueba si el calculo de la inversa se hizo correctamente
-	if(debug){
-		cout << "Suma curva eliptica" << endl;
-		cout << "s1 = (" <<  s1.x << ", " 
-						  <<  s1.y << ")" << endl;		  
-		cout << "s2 = (" << s2.x << ", " 
-						  << s2.y << ")" << endl;
-		cout << "p = " << p << endl;
-	}
-	//Si alguno de los puntos es O, devolvemos el otro punto como solucion
-	if(s1.x == 0){
-		s3.x = s2.x;
-		s3.y = s2.y;
-		if(debug) cout << "Sumando 1 es \"O\": devolviendo s2" << endl;
-	}
-	else{
-		if(s2.x < 0){
-			s3.x = s1.x;
-			s3.y = s1.y;
-			if(debug) cout << "Sumando 2 es \"O\": devolviendo s1" << endl;
-		}
-		else{
-			//Si tenemos dos puntos de la forma (x,y) y (x,-y), devolvemos O
-			aux = s1.y + s2.y;
-			if(debug) cout << "Suma curva eliptica sin O" << endl;
-			mpz_mod(aux.get_mpz_t(), aux.get_mpz_t(), p.get_mpz_t());
-			if(debug) cout << "Suma curva eliptica sin O" << endl;
-			if(s1.x == s2.x && aux == 0){
-				s3.x = -1;
-				s3.y = -1;
-				if(debug) cout << "Puntos opuestos: devolviendo \"O\"" << endl;
-			}
-			//En otro caso
-			else{
-				//Calculamos lambda
-				//Si ambos puntos son iguales
-				if(s1.x == s2.x && s1.y == s2.y){
-					if(debug) cout << "Puntos iguales: calculando lambda" << endl;
-					//lambda = (3x^2 + a)/2y
-					lambda = 3*s1.x*s1.x + a;
-					inv = 2*s1.y;
-					//Si no hay inversa, devuelve 0
-					exito = mpz_invert(aux.get_mpz_t(), inv.get_mpz_t(), p.get_mpz_t());	
-					if(exito != 0){
-						lambda = lambda * aux;
-						mpz_mod(lambda.get_mpz_t(), lambda.get_mpz_t(), p.get_mpz_t());
-					}
-				}
-				//Si ambos numeros son diferentes
-				else{
-					if(debug) cout << "Puntos diferentes: calculando lambda" << endl;
-					//lambda = (y1 - y2)/(x1 - x2)
-					lambda = s1.y - s2.y;
-					inv = s1.x - s2.x;
-					//Si no hay inversa, devuelve 0
-					exito = mpz_invert(aux.get_mpz_t(), inv.get_mpz_t(), p.get_mpz_t());	
-					if(exito != 0){
-						lambda = lambda*aux;	
-						mpz_mod(lambda.get_mpz_t(), lambda.get_mpz_t(), p.get_mpz_t());
-					}
-				}
-				if(exito != 0){
-					if(debug) cout << "lambda = " << lambda << endl;
-					//Calculamos la coordenada x de la suma
-					//x3 = lambda^2 - x1 - x2 (mod p)
-					s3.x = lambda*lambda - s1.x - s2.x;
-					mpz_mod(s3.x.get_mpz_t(), s3.x.get_mpz_t(), p.get_mpz_t());
-					
-					//Calculamos la coordenada y
-					//y3 = lambda*(x_1-x_3) - y1 (mod p)
-					s3.y = lambda*(s1.x - s3.x) - s1.y;
-					mpz_mod(s3.y.get_mpz_t(), s3.y.get_mpz_t(), p.get_mpz_t());
-					if(debug) cout << "Suma = (" << s3.x << "," << s3.y << ")" << endl;
-				}
-				else{
-					//Punto no definido
-					if(debug){
-						cout << "Suma no definida: no existe el inverso de " << inv << endl;
-						cout << "inv = " << inv << endl;
-					}
-					s3.x = -2;
-					s3.y = -2;
-				}
-			}
-		}
-	}
-	return s3;
-}
-
-Punto multiplicacionCurvaEliptica(const Punto f1, const mpz_class f2, const mpz_class a, 
-								const mpz_class b, const mpz_class p, mpz_class &inv, bool debug){
-	Punto p2, mul;
-	mpz_class r, lambda, f2_2;
-	int exito = 1;	//Comprueba si el calculo de la inversa se hizo correctamente en las sumas
-	int i = 0;
-	
-	if(debug) cout << "Inicio multiplicacion" << endl;
-	
-	//Inicializamos la multiplicacion en "O"
-	mul.x = -1;
-	mul.y = -1;
-	
-	//Guardamos el punto a multiplicar P en p2
-	p2.x = f1.x;
-	p2.y = f1.y;
-	f2_2 = f2;
-	if(debug) cout << "p2 = (" << p2.x << "," << p2.y << ")" << endl;
-	
-	while(f2_2 > 0 && exito != 0){
-		if(debug){
-			cout << "Iteracion " << i << endl;
-			cout << "f2 = " << f2_2 << endl;
-		}
-		//Calculamos el siguiente bit
-		mpz_fdiv_qr_ui(f2_2.get_mpz_t(), r.get_mpz_t(), f2_2.get_mpz_t(), 2);
-		if(debug) cout << "Valor bit actual: " << r << endl;
-		//Si el bit es 1, multiplicamos p2 por mul
-		if(r == 1){
-			mul = sumaCurvaEliptica(mul, p2, a, b, p, inv);
-			if(mul.x == -2){
-				exito = 0;
-			}
-		}
-		//Calculamos la siguiente potencia de 2 de P
-		if(exito != 0){
-			p2 = sumaCurvaEliptica(p2, p2, a, b, p, inv);
-			if(p2.x == -2){
-				exito = 0;
-			}
-		}
-		if(debug) cout << "mul actual = (" << mul.x << "," << mul.y << ")" << endl;
-		i++;
-	}
-	//Devolvemos un punto no existente si falla alguna suma
-	if(exito == 0){
-		if(debug) cout << "La multiplicacion no queda definida: no existe el inverso de " << inv << endl;
-		mul.x = -2;
-		mul.y = -2;
-	}
-
-	return mul;
-}
-
-//Calcula el numero mas grande tal que sea k-potencia-suave
-mpz_class maxKPotenciaSuave(const mpz_class k){
-	mpz_class kps, p_actual, p_potencia;
-	
-	kps = 1;
-	p_actual = 2;
-	
-	//Mientras el primo actual no supere el valor de K
-	while(p_actual < k){
-		p_potencia = p_actual;
-		//Calculamos el valor de p_actual^e tal que no supere K
-		while(p_potencia < k){
-			p_potencia = p_potencia * p_actual;	//p_potencia = p_actual^{n+1}
-		}
-		//Dividimos para que p_potencia < k
-		mpz_divexact(p_potencia.get_mpz_t(), p_potencia.get_mpz_t(), p_actual.get_mpz_t());	
-		//Multiplicamos dicho valor en el acumulador
-		kps = kps * p_potencia;
-		//Pasamos al siguiente primo
-		mpz_nextprime(p_actual.get_mpz_t(), p_actual.get_mpz_t());
-	}
-	
-	return kps;
-}
-
 mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state, const mpz_class k,
 									   const unsigned int att, bool debug){
 	Punto Q, M;
@@ -379,211 +204,6 @@ mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state,
 	return p;
 }
 
-
-// Función para encontrar una raíz cuadrada de a módulo p usando el algoritmo de Tonelli-Shanks
-mpz_class sqrt_mod(const mpz_class &a, const mpz_class &n, bool debug){
-	mpz_class sqrt_a, a2, b, q = n-1, s = 0, z, aux;
-	mpz_class M, c, t, R;
-	
-	//Calculamos a = a (mod p)
-	mpz_mod(a2.get_mpz_t(), a.get_mpz_t(), n.get_mpz_t());
-	if(debug){
-		cout << "a = " << a << endl;
-		cout << "n = " << n << endl;
-		cout << "a2 = " << a2 << endl << flush;
-	}
-	//Comprobaciones iniciales
-    if (a2 == 0) {
-    	if(debug) cout << "La raiz de 0 siempre es 0" << endl;
-        sqrt_a = 0;
-    }
-    else{
-    	if (n == 2) {
-    		if(debug) cout << "La raiz de en Z_2 siempre es 0 sii es par" << endl;
-        	sqrt_a = a2 % n;
-    	}
-    	else{
-			if (mpz_legendre(a2.get_mpz_t(), n.get_mpz_t()) != 1) {
-				if(debug){
-					cout << "No existe la raiz cuadrada modular: el simbolo de Legendre no es 1." << endl;
-				}
-		 	   	throw std::invalid_argument("No existe una raíz cuadrada modular");
-			}
-			else{
-				//Calculamos q,s tales que a = q*2^s, con q impar
-				while(q % 2 == 0){
-					q = q / 2;
-					s++;
-				}
-				//Buscamos un numero z que no sea residuo cuadratico en Z_n
-				z = 2;
-				while(mpz_legendre(z.get_mpz_t(),n.get_mpz_t()) != -1){
-					z++;
-				}
-				if(debug){
-					cout << "S = " << s << endl;
-					cout << "Q = " << q << endl;
-					cout << "Valores iniciales" << endl;
-				}
-				M = s;
-				mpz_powm(c.get_mpz_t(), z.get_mpz_t(), q.get_mpz_t(), n.get_mpz_t());
-				mpz_powm(t.get_mpz_t(), a2.get_mpz_t(), q.get_mpz_t(), n.get_mpz_t());
-				aux = (q+1)/2;
-				mpz_powm(R.get_mpz_t(), a2.get_mpz_t(), aux.get_mpz_t(), n.get_mpz_t());
-				if(debug){
-					cout << "M = " << M << endl;
-					cout << "c = " << c << endl;
-					cout << "aux = " << aux << endl;
-					cout << "t = " << t << endl;
-					cout << "R = " << R << endl;
-				}
-				while (t != 0 && t != 1) {
-					if(debug) cout << "Iteracion" << endl;
-					mpz_class tt = t;
-					unsigned int i = 0;
-					for (i = 0; i < M.get_ui(); i++) {
-						if (tt == 1) {
-						    break;
-						}
-						mpz_powm_ui(tt.get_mpz_t(), tt.get_mpz_t(), 2, n.get_mpz_t());
-					}
-
-					if (i == M.get_ui()) {
-						throw std::invalid_argument("No existe una raíz cuadrada modular");
-					}
-
-					mpz_powm_ui(b.get_mpz_t(), c.get_mpz_t(), 1 << (M.get_ui() - i - 1), n.get_mpz_t());
-					M = i;
-					c = (b*b) % n;
-					R = (R*b) % n;
-					//t = t*b^2 (mod n) = t*c (mod n)
-					t = (t*c) % n;
-					if(debug){
-						cout << "-----------------" << endl;
-						cout << "b = " << b << endl;
-						cout << "M = " << M << endl;
-						cout << "c = " << c << endl;
-						cout << "R = " << R << endl;
-						cout << "t = " << t << endl;
-					}
-					
-				}
-				if(t == 0){
-					sqrt_a = 0;
-				}
-				else{
-					sqrt_a = R;
-				}
-				if(debug) cout << "Raiz cuadrada = " << sqrt_a << endl;
-			}
-		}
-	}
-	return sqrt_a;
-}
-
-// Función para transponer una matriz
-vector<vector<bool>> transpose(vector<vector<bool>>& matrix) {
-    int n = matrix.size();
-    int m = matrix[0].size();
-    vector<vector<bool>> transposed(m, vector<bool>(n));
-    
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < m; ++j) {
-            transposed[j][i] = matrix[i][j];
-        }
-    }
-    return transposed;
-}
-
-
-// Función para realizar la eliminación gaussiana sobre matrix2 en mod 2
-vector<vector<bool>> gaussian_elimination(vector<vector<bool>> &matrix) {
-    vector<vector<bool>> matrix2 = matrix;
-    int n = matrix2.size();
-    int m = matrix2[0].size();
-    
-    int row = 0;
-    for (int col = 0; col < m && row < n; ++col) {
-        // Buscamos una fila con un 1 en la columna col
-        int sel = row;
-        for (int i = row; i < n; ++i) {
-            if (matrix2[i][col]) {
-                sel = i;
-                break;
-            }
-        }
-        
-        // Si no hay ningún 1 en la columna col, seguimos
-        if (!matrix2[sel][col]) continue;
-
-        // Intercambiamos la fila seleccionada con la fila actual
-        swap(matrix2[sel], matrix2[row]);
-
-        // Escribimos ceros en todas las filas excepto la actual
-        for (int i = 0; i < n; ++i) {
-            if (i != row && matrix2[i][col]) {
-                for (int j = col; j < m; ++j) {
-                    matrix2[i][j] = matrix2[i][j] ^ matrix2[row][j];
-                }
-            }
-        }
-        row++;
-    }
-    return matrix2;
-}
-
-// Funcion para encontrar las soluciones del sistema anterior
-vector<vector<bool>> find_solutions(const vector<vector<bool>>& matrix) {
-    int n = matrix.size();
-    int m = matrix[0].size();
-    
-    vector<int> pivot(m, -1); // Índice de fila del pivote para cada columna, -1 si no hay pivote
-    vector<vector<bool>> solutions;
-
-    // Identificamos columnas pivote
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < m; ++j) {
-            if (matrix[i][j]) {
-                pivot[j] = i;
-                break;
-            }
-        }
-    }
-
-    // Generamos todas las combinaciones de variables libres
-    int num_free_vars = count(pivot.begin(), pivot.end(), -1);
-    int num_solutions = 1 << num_free_vars; // 2^num_free_vars combinaciones posibles
-
-    for (int k = 0; k < num_solutions; ++k) {
-        vector<bool> solution(m, false);
-        int free_var_idx = 0;
-
-        // Asignar valores a variables libres según la combinación k
-        for (int j = 0; j < m; ++j) {
-            if (pivot[j] == -1) {
-                solution[j] = (k >> free_var_idx) & 1;
-                free_var_idx++;
-            }
-        }
-
-        // Calculamos los valores de las variables pivote
-        for (int j = 0; j < m; ++j) {
-            if (pivot[j] != -1) {
-                bool value = false;
-                for (int l = j + 1; l < m; ++l) {
-                    if (matrix[pivot[j]][l]) {
-                        value ^= solution[l];
-                    }
-                }
-                solution[j] = value;
-            }
-        }
-
-        solutions.push_back(solution);
-    }
-
-    return solutions;
-}
 
 
 mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k, 
@@ -769,7 +389,7 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 				
 				for(unsigned int j = 0; j < factores_r.size(); j++){
 					for(int k = 0; k < factores_r[j]; k++)
-					r_acum *= base_primos[j];
+						r_acum *= base_primos[j];
 				}
 				
 				if(debug) cout << "Congruencia " << endl;
@@ -805,3 +425,60 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 	}
 	return p;
 }
+
+bool ataqueWiener(mpz_class &d, mpz_class &p, mpz_class &q, 
+				  const mpz_class e, const mpz_class n, bool debug){
+	vector<mpz_class> cf = cocientes_fraccion_continua(e, n);
+	mpz_class convergente_num, convergente_den;
+	mpz_class k1 = 1, k2 = 0, d1 = 0, d2 = 1, k;
+	mpz_class phi, r, a, b, c;
+	mpz_class aux;
+	bool exito = false, existe_solucion = false;
+	cout << "e = " << e << endl;
+	cout << "n = " << n << endl;
+	for(unsigned int i = 0; i < cf.size() && !exito; i++){
+		//Calculamos la reducida i-esima
+		d = cf[i] * d1 + d2;
+        k = cf[i] * k1 + k2;
+		if(debug) cout << "Reducida " << i << " = " << k << "/" << d << endl;
+        d2 = d1;
+        d1 = d;
+        k2 = k1;
+	    k1 = k;
+	    
+		//Si divide entre 0, pasamos al siguiente convergente
+		if(k != 0){
+			//Calculamos (e*d-1)/k 
+			aux = e*d-1;
+			mpz_fdiv_qr(phi.get_mpz_t(), r.get_mpz_t(), aux.get_mpz_t(), k.get_mpz_t());
+			if(debug){
+				cout << "resto = " << r << endl;
+				cout << "Potencial phi = " << phi << endl;
+			}
+			//Si (e*d-1)/k no es una division exacta, pasamos a la siguiente convergente
+			if(r == 0){
+				//Resolvemos la ecuacion x^2 - (N - phi + 1) x + N = 0 --> Raices = p,q
+				a = 1;
+				b = -(n - phi + 1);
+				c = n;
+				existe_solucion = resuelveEcuacionCuadratica(p, q, a, b, c);
+				if(debug){
+					cout << "existe solucion = " << existe_solucion << endl;
+					cout << "p*q = " << p*q << endl;
+				}
+				if (existe_solucion && p * q == n) {
+				    exito = true;
+				}
+			}
+		}
+	}
+	
+	if(!exito){
+		d = 1;
+		p = n;
+		q = 1;
+	}
+	
+	return exito;
+}
+
