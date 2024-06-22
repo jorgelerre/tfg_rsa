@@ -91,13 +91,13 @@ int main() {
 		        		cin >> tam_n;
 		        	}
 		        	if(opcion2 == 1){
-		        		generate_rsa_key(n, e, d, tam_n, state, false, false, debug);
+		        		generaClaveRSA(n, e, d, tam_n, state, false, false, debug);
 		        	}
 		        	else{
 		        		if(opcion2 == 2)
-		        			generate_rsa_key(n, e, d, tam_n, state, true, false, debug);
+		        			generaClaveRSA(n, e, d, tam_n, state, true, false, debug);
 		        		else
-		        			generate_rsa_key(n, e, d, tam_n, state, false, true, debug);
+		        			generaClaveRSA(n, e, d, tam_n, state, false, true, debug);
 		        	}
 		        	cout << "----Clave generada----" << endl;
 		        	cout << "n = " << n << endl;
@@ -112,7 +112,7 @@ int main() {
 		        	cout << "Introduce el numero a cifrar: ";
 		        	cin >> mensaje;
 		        	cout << "Mensaje = " << mensaje << endl;
-		        	cout << "Cifrado = " << cifra_RSA(mensaje, e, n) << endl;
+		        	cout << "Cifrado = " << cifraRSA(mensaje, e, n) << endl;
 		        }
 		        else{
 		        	cout << "Necesitas inicializar la clave para usar esta opcion.\n";
@@ -123,7 +123,7 @@ int main() {
 		        	cout << "Introduce el numero a descifrar: ";
 		        	cin >> mensaje;
 		        	cout << "Cifrado = " << mensaje << endl;
-		        	cout << "Mensaje original = " << descifra_RSA(mensaje, d, n) << endl;
+		        	cout << "Mensaje original = " << descifraRSA(mensaje, d, n) << endl;
 		        }
 		        else{
 		        	cout << "Necesitas inicializar la clave para usar esta opcion.\n";

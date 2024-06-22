@@ -20,7 +20,7 @@
  * @param low_d Indica si se desea un valor bajo para el exponente d (opcional).
  * @param debug Habilita la salida de depuración si es verdadero (opcional).
  */
-void generate_rsa_key(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bits, 
+void generaClaveRSA(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bits, 
                       gmp_randstate_t state, bool strong_prime, bool low_d = false, bool debug = false);
 
 /**
@@ -30,7 +30,7 @@ void generate_rsa_key(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bit
  * @param n Módulo RSA.
  * @return El mensaje cifrado.
  */
-mpz_class cifra_RSA(mpz_class m, mpz_class e, mpz_class n);
+mpz_class cifraRSA(mpz_class m, mpz_class e, mpz_class n);
 
 /**
  * Realiza el descifrado RSA de un mensaje cifrado m.
@@ -39,7 +39,7 @@ mpz_class cifra_RSA(mpz_class m, mpz_class e, mpz_class n);
  * @param n Módulo RSA.
  * @return El mensaje descifrado.
  */
-mpz_class descifra_RSA(mpz_class m, mpz_class d, mpz_class n);
+mpz_class descifraRSA(mpz_class m, mpz_class d, mpz_class n);
 
 #endif // RSA_H
 

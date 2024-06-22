@@ -11,7 +11,7 @@ using namespace std;
 
 
 // Función principal para generar claves RSA
-void generate_rsa_key(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bits, gmp_randstate_t state, bool strong_prime, bool low_d, bool debug) {
+void generaClaveRSA(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bits, gmp_randstate_t state, bool strong_prime, bool low_d, bool debug) {
     mpz_class p, q, phi_n, mcd;
     
     unsigned int e_default = 65537;
@@ -19,26 +19,26 @@ void generate_rsa_key(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bit
     // Elegimos dos primos p y q aleatoriamente
     if (strong_prime) {
         if (debug) cout << "Buscando p..." << endl;
-        p = generate_strong_prime(bits / 2, state);
+        p = generateStrongPrime(bits / 2, state);
         if (debug) {
             cout << "p = " << p << endl;
             cout << "tamaño p = " << mpz_sizeinbase(p.get_mpz_t(), 2) << endl;
             cout << "Buscando q..." << endl;
         }
-        q = generate_strong_prime(bits / 2, state);
+        q = generateStrongPrime(bits / 2, state);
         if (debug) {
             cout << "q = " << q << endl;
             cout << "Tamaño q = " << mpz_sizeinbase(q.get_mpz_t(), 2) << endl;
         }
     } else {
         if (debug) cout << "Buscando p..." << endl;
-        p = generate_prime(bits / 2, state);
+        p = generatePrime(bits / 2, state);
         if (debug) {
             cout << "p = " << p << endl;
             cout << "tamaño p = " << mpz_sizeinbase(p.get_mpz_t(), 2) << endl;
             cout << "Buscando q..." << endl;
         }
-        q = generate_prime(bits / 2, state);
+        q = generatePrime(bits / 2, state);
         if (debug) {
             cout << "q = " << q << endl;
             cout << "Tamaño q = " << mpz_sizeinbase(q.get_mpz_t(), 2) << endl;
@@ -115,14 +115,14 @@ void generate_rsa_key(mpz_class &n, mpz_class &e, mpz_class &d, unsigned int bit
 }
 
 
-mpz_class cifra_RSA(mpz_class m, mpz_class e, mpz_class n){
+mpz_class cifraRSA(mpz_class m, mpz_class e, mpz_class n){
 	mpz_class m_cifrado;
 	//Hacemos la operacion m_cifrado = m^e (mod n)
 	mpz_powm(m_cifrado.get_mpz_t(), m.get_mpz_t(), e.get_mpz_t(), n.get_mpz_t());
 	return m_cifrado;
 }
 
-mpz_class descifra_RSA(mpz_class m, mpz_class d, mpz_class n){
-	return cifra_RSA(m, d, n);	//Se cifra de la misma forma que se descifra
+mpz_class descifraRSA(mpz_class m, mpz_class d, mpz_class n){
+	return cifraRSA(m, d, n);	//Se cifra de la misma forma que se descifra
 }
 

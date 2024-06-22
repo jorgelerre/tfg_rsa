@@ -14,7 +14,7 @@ using namespace std;
  * @it Numero de iteraciones que aplicar la prueba
  * @return Un numero aleatorio de 64 bits
 */
-unsigned long int generate_random_limb(gmp_randstate_t state) {
+unsigned long int generateRandomLimb(gmp_randstate_t state) {
     mpz_t random_num;
     unsigned long int r;
     mpz_init(random_num);
@@ -122,7 +122,7 @@ bool millerRabin(const mpz_class p, int it, gmp_randstate_t state){
 	if(!primo_bajo){
 		for(int i = 0; i < it && no_fail; i++){
 			//Generamos un numero aleatorio (pequeño (1 miembro) para aligerar los calculos)
-			b = generate_random_limb(state);
+			b = generateRandomLimb(state);
 			//Comprobamos la pseudoprimalidad en dicha base
 			no_fail = strongPseudoprime(p, b);
 		}
@@ -136,7 +136,7 @@ bool millerRabin(const mpz_class p, int it, gmp_randstate_t state){
  * @state Estado del generador de numeros aleatorios de GMP
  * @return Un primo del tamanio especificado
  */
-mpz_class generate_prime(unsigned int bits, gmp_randstate_t state) {
+mpz_class generatePrime(unsigned int bits, gmp_randstate_t state) {
     mpz_class p;
     
     do{
@@ -168,7 +168,7 @@ mpz_class generate_prime(unsigned int bits, gmp_randstate_t state) {
  * @state Estado del generador de numeros aleatorios de GMP
  * @return Dato de tipo mpz_class con el primo generado
  */
-mpz_class generate_strong_prime(unsigned int bits, gmp_randstate_t state, bool debug) {
+mpz_class generateStrongPrime(unsigned int bits, gmp_randstate_t state, bool debug) {
     mpz_class p,p_0,r,s,t,i,j,aux;
     int bits_j, bits_1, bits_2;
     
@@ -181,8 +181,8 @@ mpz_class generate_strong_prime(unsigned int bits, gmp_randstate_t state, bool d
     	bits_2 = bits / 2 - 1;
     }
     do{
-		s = generate_prime(bits_1, state);
-		t = generate_prime(bits_2, state);
+		s = generatePrime(bits_1, state);
+		t = generatePrime(bits_2, state);
 		if(debug){
 			cout << "s = " << s << endl;
 			cout << "t = " << t << endl;
@@ -422,7 +422,7 @@ mpz_class maxKPotenciaSuave(const mpz_class k){
 }
 
 // Función para encontrar una raíz cuadrada de a módulo p usando el algoritmo de Tonelli-Shanks
-mpz_class sqrt_mod(const mpz_class &a, const mpz_class &n, bool debug){
+mpz_class sqrtMod(const mpz_class &a, const mpz_class &n, bool debug){
 	mpz_class sqrt_a, a2, b, q = n-1, s = 0, z, aux;
 	mpz_class M, c, t, R;
 	
@@ -538,7 +538,7 @@ vector<vector<bool>> transpose(vector<vector<bool>>& matrix) {
 
 
 // Función para realizar la eliminación gaussiana sobre matrix2 en mod 2
-vector<vector<bool>> gaussian_elimination(const vector<vector<bool>> &matrix) {
+vector<vector<bool>> eliminacionGaussiana(const vector<vector<bool>> &matrix) {
     vector<vector<bool>> matrix2 = matrix;
     int n = matrix2.size();
     int m = matrix2[0].size();
@@ -574,7 +574,7 @@ vector<vector<bool>> gaussian_elimination(const vector<vector<bool>> &matrix) {
 }
 
 // Funcion para encontrar las soluciones del sistema anterior
-vector<vector<bool>> find_solutions(const vector<vector<bool>>& matrix) {
+vector<vector<bool>> encuentraSoluciones(const vector<vector<bool>>& matrix) {
     int n = matrix.size();
     int m = matrix[0].size();
     
@@ -631,7 +631,7 @@ vector<vector<bool>> find_solutions(const vector<vector<bool>>& matrix) {
 }
 
 //Calcula la fraccion continua de la fraccion num/den
-vector<mpz_class> cocientes_fraccion_continua(const mpz_class &num, const mpz_class &den) {
+vector<mpz_class> cocientesFraccionContinua(const mpz_class &num, const mpz_class &den) {
     mpz_class n = num, d = den, q, r;
     vector<mpz_class> cf;
     while (d != 0) {

@@ -11,7 +11,7 @@
 
 using namespace std;
 
-// Factoriza n si p y q son muy cercanos
+
 mpz_class ataqueFermat(mpz_class n, gmp_randstate_t state){
 	mpz_class p, x, u, v, r;
 	
@@ -94,7 +94,6 @@ mpz_class paso_rhoPollard(mpz_class x, mpz_class n){
 	return (x*x + 1) % n;
 }
 
-// Factoriza n si p y q son muy cercanos
 mpz_class rhoPollard(mpz_class n, gmp_randstate_t state, bool debug){
 	mpz_class p, t, l, dif, mcd = 1;
 	
@@ -291,7 +290,7 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 	for(unsigned int i = 0; i < base_primos.size(); i++){
 		//Calculamos la raiz cuadrada de n
 		//if(debug) cout << "Primo " << base_primos[i] << " " << endl;
-		r1 = sqrt_mod(n, base_primos[i]);
+		r1 = sqrtMod(n, base_primos[i]);
 		
 		
 		//Realizamos la criba con la solucion positiva
@@ -364,9 +363,9 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 		//Trasponemos factores_uniformes y ejecutamos la eliminacion gaussiana
 		vector<vector<bool>> factores_uniformes_t = transpose(factores_uniformes);
 		
-		factores_uniformes_t = gaussian_elimination(factores_uniformes_t);
+		factores_uniformes_t = eliminacionGaussiana(factores_uniformes_t);
 		
-		vector<vector<bool>> sols = find_solutions(factores_uniformes_t);
+		vector<vector<bool>> sols = encuentraSoluciones(factores_uniformes_t);
 		if(debug) 
 			cout << "Numero de soluciones: " << sols.size() << endl;
 		vector<bool> sol;
@@ -469,7 +468,7 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 
 bool ataqueWiener(mpz_class &d, mpz_class &p, mpz_class &q, 
 				  const mpz_class e, const mpz_class n, bool debug){
-	vector<mpz_class> cf = cocientes_fraccion_continua(e, n);
+	vector<mpz_class> cf = cocientesFraccionContinua(e, n);
 	mpz_class convergente_num, convergente_den;
 	mpz_class k1 = 1, k2 = 0, d1 = 0, d2 = 1, k;
 	mpz_class phi, r, a, b, c;

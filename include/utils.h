@@ -22,7 +22,7 @@ struct Punto {
  * @param state Estado del generador de números aleatorios GMP.
  * @return Un número aleatorio de 64 bits.
  */
-unsigned long int generate_random_limb(gmp_randstate_t state);
+unsigned long int generateRandomLimb(gmp_randstate_t state);
 
 /**
  * Comprueba si un número es pseudoprimo fuerte en cierta base.
@@ -48,7 +48,7 @@ bool millerRabin(const mpz_class p, int it, gmp_randstate_t state);
  * @param state Estado del generador de números aleatorios GMP.
  * @return Un primo del tamaño especificado.
  */
-mpz_class generate_prime(unsigned int bits, gmp_randstate_t state);
+mpz_class generatePrime(unsigned int bits, gmp_randstate_t state);
 
 /**
  * Función para generar un número primo robusto de 'bits' bits.
@@ -57,7 +57,7 @@ mpz_class generate_prime(unsigned int bits, gmp_randstate_t state);
  * @param debug Habilita la salida de depuración si es verdadero.
  * @return Número de tipo mpz_class que representa el primo generado.
  */
-mpz_class generate_strong_prime(unsigned int bits, gmp_randstate_t state, bool debug = false);
+mpz_class generateStrongPrime(unsigned int bits, gmp_randstate_t state, bool debug = false);
 
 /**
  * Realiza la suma de dos puntos en una curva elíptica sobre Z_p.
@@ -101,7 +101,7 @@ mpz_class maxKPotenciaSuave(const mpz_class k);
  * @param debug Habilita la salida de depuración si es verdadero.
  * @return La raíz cuadrada modular de 'a' módulo 'n'.
  */
-mpz_class sqrt_mod(const mpz_class &a, const mpz_class &n, bool debug = false);
+mpz_class sqrtMod(const mpz_class &a, const mpz_class &n, bool debug = false);
 
 /**
  * Transpone una matriz representada como un vector de vectores de booleanos.
@@ -115,14 +115,14 @@ vector<vector<bool>> transpose(vector<vector<bool>>& matrix);
  * @param matrix Matriz sobre la cual aplicar la eliminación.
  * @return La matriz resultante después de la eliminación gaussiana.
  */
-vector<vector<bool>> gaussian_elimination(const vector<vector<bool>> &matrix);
+vector<vector<bool>> eliminacionGaussiana(const vector<vector<bool>> &matrix);
 
 /**
  * Encuentra soluciones para una matriz dada de ecuaciones booleanas.
  * @param matrix Matriz de ecuaciones booleanas.
  * @return Vectores de soluciones para la matriz dada.
  */
-vector<vector<bool>> find_solutions(const vector<vector<bool>>& matrix);
+vector<vector<bool>> encuentraSoluciones(const vector<vector<bool>>& matrix);
 
 /**
  * Calcula los cocientes de la fracción continua para la relación num/den.
@@ -130,7 +130,7 @@ vector<vector<bool>> find_solutions(const vector<vector<bool>>& matrix);
  * @param den Denominador de la fracción.
  * @return Vector de mpz_class con los cocientes de la fracción continua.
  */
-vector<mpz_class> cocientes_fraccion_continua(const mpz_class &num, const mpz_class &den);
+vector<mpz_class> cocientesFraccionContinua(const mpz_class &num, const mpz_class &den);
 
 /**
  * Resuelve una ecuación cuadrática de la forma ax^2 + bx + c = 0.
