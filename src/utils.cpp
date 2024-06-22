@@ -594,7 +594,11 @@ vector<vector<bool>> find_solutions(const vector<vector<bool>>& matrix) {
     // Generamos todas las combinaciones de variables libres
     int num_free_vars = count(pivot.begin(), pivot.end(), -1);
     int num_solutions = 1 << num_free_vars; // 2^num_free_vars combinaciones posibles
-
+	
+	if(num_solutions > 100){	//Si hay mas de 100 soluciones, nos quedamos con las primeras solo
+		num_solutions = 100;
+	}
+	
     for (int k = 0; k < num_solutions; ++k) {
         vector<bool> solution(m, false);
         int free_var_idx = 0;

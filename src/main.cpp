@@ -66,7 +66,8 @@ int main() {
 	gmp_randstate_t state;
 	gmp_randinit_default(state);
     gmp_randseed_ui(state, static_cast<unsigned long>(time(nullptr)));
-    
+    clock_t inicio, fin;
+    double tiempo_ejecucion;
     
     //Programa principal - Menu
 	while (seguir) {
@@ -139,15 +140,21 @@ int main() {
 				    switch(opcion2){
 				    	case 1:	//Factorizacion de Fermat
 				    		cout << "Factorizacion de Fermat\n";
+				    		inicio = clock();
 				    		p = ataqueFermat(n, state);
+				    		fin = clock();
 				    		break;
 				    	case 2: //Factorizacion de Kraitchik
 				    		cout << "Factorizacion de Kraitchik\n";
+				    		inicio = clock();
 				    		p = ataqueKraitchik(n, state);
+				    		fin = clock();
 				    		break;
 				    	case 3:	//Rho de Pollard
 				        	cout << "Rho de Pollard\n";
+				        	inicio = clock();
 				        	p = rhoPollard(n, state);
+				        	fin = clock();
 				        	break;
 				        case 4:	//p-1 de Pollard
 							cout << "Ataque p-1\n";
@@ -157,7 +164,9 @@ int main() {
 							cout << "Introduce el numero de intentos a realizar: ";
 							cin >> att;
 							cout << "att = " << att << endl;
+							inicio = clock();
 							p = p1Pollard(n, state, k, att);
+							fin = clock();
 							break;
 						case 5: //Ataque de factorizacion por curvas elipticas
 							cout << "Ataque de factorizacion por curvas elipticas\n";
@@ -167,7 +176,9 @@ int main() {
 							cout << "Introduce el numero de intentos a realizar: ";
 							cin >> att;
 							cout << "att = " << att << endl;
+							inicio = clock();
 							p = factorizacionCurvasElipticas(n, state, k, att);
+							fin = clock();
 							break;
 						case 6:	//Ataque de factorizacion por criba cuadratica
 							cout << "Ataque de factorizacion por criba cuadratica\n";
@@ -177,11 +188,16 @@ int main() {
 							cout << "Introduce un valor de tam_tabla: ";
 							cin >> tam_tabla;
 							cout << "tam_tabla = " << tam_tabla << endl;
+							inicio = clock();
 							p = factorizacionCribaCuadratica(n, k, tam_tabla, true);
+							fin = clock();
 							break;
 						case 7: //Ataque de Wiener
 							cout << "Ataque de Wiener\n";
+							inicio = clock();
 							res = ataqueWiener(d_res, p, q, e, n, true);
+							fin = clock();
+				    		
 							if(res){
 								cout << "Clave privada d = " << d << endl;
 								cout << "Clave privada d calculada = " << d_res << endl;
@@ -190,17 +206,20 @@ int main() {
 								cout << "q = " << q << endl;
 							}
 							else{
-								cout << "El ataque no ha funcionado." << endl;
+								cout << "El ataque de Wiener no ha funcionado." << endl;
 							}
+							cout << "Tiempo de ejecucion (s) = " << tiempo_ejecucion << endl;
 							break;
 						case 8: //Volver
 							break;
 				    }
 				    if(opcion2 < 7){
 						q = n / p;
+						tiempo_ejecucion = double(fin - inicio) / CLOCKS_PER_SEC;
 						cout << "n = " << n << endl;
 						cout << "p = " << p << endl;
 						cout << "q = " << q << endl;
+						cout << "Tiempo de ejecucion (s) = " << tiempo_ejecucion << endl;
 					}
 		        }
 		        else{
