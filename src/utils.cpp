@@ -174,12 +174,26 @@ mpz_class generateStrongPrime(unsigned int bits, gmp_randstate_t state, bool deb
     
     if(debug) cout << "Buscando s,t..." << endl;
     //Generamos dos primos grandes s, t
-    bits_1 = (bits-log2(bits))/2 - 4;
-    bits_2 = bits_1 - log2(bits_1) - 7;
-    if(bits_1 < 4 || bits_2 < 4){
-    	bits_1 = bits / 2;
-    	bits_2 = bits / 2 - 1;
+    if(bits > 90){
+		bits_1 = (bits-log2(bits))/2 - 3;
+		bits_2 = bits_1 - log2(bits_1) - 6;
     }
+    else{
+    	bits_1 = (bits-log2(bits))/2 - 1;
+		bits_2 = bits_1 - log2(bits_1) - 1;
+		cout << "bits 1: " << bits_1 << endl;
+		cout << "bits 2: " << bits_2 << endl;
+		if(bits_1 < 4){
+			bits_1 = 4;
+		}
+		if(bits_2 < 2){
+			bits_2 = 2;
+		}
+		
+		cout << "bits 1: " << bits_1 << endl;
+		cout << "bits 2: " << bits_2 << endl;
+    }
+    
     do{
 		s = generatePrime(bits_1, state);
 		t = generatePrime(bits_2, state);
@@ -643,6 +657,7 @@ vector<mpz_class> cocientesFraccionContinua(const mpz_class &num, const mpz_clas
     return cf;
 }
 
+//Resuelve ecuacion cuadratica con a y c no nulos
 bool resuelveEcuacionCuadratica(mpz_class &p, mpz_class &q, mpz_class a, mpz_class b, mpz_class c){
 	mpz_class discriminant = b * b - 4 * a * c;
 	bool exito = false;

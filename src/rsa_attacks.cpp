@@ -177,8 +177,6 @@ mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state,
 	Punto Q, M;
 	mpz_class p, a, b, aux, inv, L;
 	bool exito = false;
-	
-	
 			
 	//Comprobamos que n no sea primo
 	if(millerRabin(n, 10, state)){
@@ -272,7 +270,6 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 	}
 	if(debug)
 		cout << "Tamanio base de primos: " << base_primos.size() << endl;
-	
 	
 	//Creamos la tabla de la criba y la tabla de factores
 	mpz_sqrt(x_ini.get_mpz_t(), n.get_mpz_t());	//Guardamos en x_ini = sqrt(n)
