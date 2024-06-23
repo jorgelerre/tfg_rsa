@@ -135,12 +135,12 @@ mpz_class rhoPollard(mpz_class n, gmp_randstate_t state, bool debug){
 mpz_class p1Pollard(mpz_class n, gmp_randstate_t state, const mpz_class k, const unsigned int att, bool debug){
 	mpz_class a, B, x, mcd;
 	bool exito = false;
+	//Calculamos B
+	B = maxKPotenciaSuave(k);
+	
 	for(unsigned int i = 0; i < att && !exito; i++){
 		//Seleccionamos una base a
 		mpz_urandomm (a.get_mpz_t(), state, n.get_mpz_t());
-		
-		//Calculamos B
-		B = maxKPotenciaSuave(k);
 		
 		//Calculamos a^B mod n
 		mpz_powm(x.get_mpz_t(), a.get_mpz_t(), B.get_mpz_t(), n.get_mpz_t());
@@ -178,11 +178,15 @@ mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state,
 	mpz_class p, a, b, aux, inv, L;
 	bool exito = false;
 	
+	
+			
 	//Comprobamos que n no sea primo
 	if(millerRabin(n, 10, state)){
 		p = n;
 	}
 	else{
+		//Calculamos L = maximo numero K-potencia-uniforme. 
+		L = maxKPotenciaSuave(k);
 		for(unsigned int i = 0; i < att && !exito; i++){
 			//Escogemos una pseudo curva eliptica eligiendo a, b y definiendola en Z_n
 			mpz_urandomm (a.get_mpz_t(), state, n.get_mpz_t());
@@ -193,9 +197,6 @@ mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state,
 			//Calculamos y como x^3 + ax + b (mod n)
 			Q.y = Q.x * Q.x * Q.x + a*Q.x + b;
 			mpz_mod(Q.y.get_mpz_t(), Q.y.get_mpz_t(), n.get_mpz_t());
-			
-			//Calculamos L = maximo numero K-potencia-uniforme. 
-			L = maxKPotenciaSuave(k);
 			
 			if(debug){
 				cout << "Intento " << att << endl;
@@ -468,14 +469,15 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 
 bool ataqueWiener(mpz_class &d, mpz_class &p, mpz_class &q, 
 				  const mpz_class e, const mpz_class n, bool debug){
-	vector<mpz_class> cf = cocientesFraccionContinua(e, n);
+	
 	mpz_class convergente_num, convergente_den;
 	mpz_class k1 = 1, k2 = 0, d1 = 0, d2 = 1, k;
 	mpz_class phi, r, a, b, c;
 	mpz_class aux;
 	bool exito = false, existe_solucion = false;
-	cout << "e = " << e << endl;
-	cout << "n = " << n << endl;
+	vector<mpz_class> cf = cocientesFraccionContinua(e, n);
+	if(debug) cout << "e = " << e << endl;
+	if(debug) cout << "n = " << n << endl;
 	for(unsigned int i = 0; i < cf.size() && !exito; i++){
 		//Calculamos la reducida i-esima
 		d = cf[i] * d1 + d2;
