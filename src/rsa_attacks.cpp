@@ -246,13 +246,16 @@ mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state,
 
 mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k, 
 									   const unsigned int tam_tabla, bool debug){
-	vector<mpz_class> tabla_criba;
+    //Calculamos el numero de subtablas a crear
+	const int tam_subtabla = 100000;
+	const unsigned int num_tablas = tam_tabla / tam_subtabla + 1;
+	vector<mpz_class> tabla_criba(tam_subtabla);
 	vector<mpz_class> base_primos;
 	vector<mpz_class> x_uniformes;
 	vector<vector<bool>> factores_uniformes;
 	vector<vector<int>> factores_uniformes_count;
 	mpz_class p_actual = 3;
-	mpz_class x_ini, entrada, r1, r2, sol1, sol2, it, p, q;
+	mpz_class x_ini, entrada, r1, r2, sol1, sol2, it, p, q, aux;
 	int s_legendre;
 	bool exito = false;
 	
@@ -271,80 +274,97 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 	if(debug)
 		cout << "Tamanio base de primos: " << base_primos.size() << endl;
 	
-	//Creamos la tabla de la criba y la tabla de factores
-	mpz_sqrt(x_ini.get_mpz_t(), n.get_mpz_t());	//Guardamos en x_ini = sqrt(n)
-	x_ini++;
-	for(unsigned int i = 0; i < tam_tabla; i++){
-		entrada = i + x_ini;
-		entrada = entrada*entrada - n;
-		tabla_criba.push_back(entrada);
-		//if(debug) cout << "Tabla_criba["<<i<<"] = " << tabla_criba[i] << endl;
-	}
-	vector<vector<bool>> factores(tam_tabla, vector<bool>(base_primos.size(), false));
-	vector<vector<int>> factores_count(tam_tabla, vector<int>(base_primos.size(), 0));
-	//Calculamos las soluciones de f(x) = x^2 - n = 0 (mod p)
-	//--> x^2 = n (mod p) --> x = sqrt(n) (mod p)
-	//Una vez las tengamos, ejecutamos la criba
-	for(unsigned int i = 0; i < base_primos.size(); i++){
-		//Calculamos la raiz cuadrada de n
-		//if(debug) cout << "Primo " << base_primos[i] << " " << endl;
-		r1 = sqrtMod(n, base_primos[i]);
-		
-		
-		//Realizamos la criba con la solucion positiva
-		sol1 = (r1 - x_ini);
-		mpz_mod(sol1.get_mpz_t(), sol1.get_mpz_t(), base_primos[i].get_mpz_t());
-		//if(debug) cout << "criba con " << sol1;
-		it = sol1;
-		while(it < tabla_criba.size()){
-			tabla_criba[it.get_ui()] /= base_primos[i];
-			factores[it.get_ui()][i] = !factores[it.get_ui()][i];
-			factores_count[it.get_ui()][i] += 1;
-			it += base_primos[i];
+	
+	
+	for(int tabla_actual = 0; tabla_actual < num_tablas && x_uniformes.size() < base_primos.size()+50; tabla_actual++){
+		cout << "Tabla " << tabla_actual << endl;
+		//Creamos la tabla de la criba y la tabla de factores
+		mpz_sqrt(x_ini.get_mpz_t(), n.get_mpz_t());	//Guardamos en x_ini = sqrt(n)
+		x_ini++;
+		for(unsigned int i = 0; i < tam_subtabla; i++){
+			entrada = i + x_ini + tabla_actual*tam_subtabla;
+			//cout << "Entrada[" << entrada << "] = " << entrada << endl;
+			entrada = entrada*entrada - n;
+			tabla_criba[i] = entrada;
+			//if(debug) cout << "Tabla_criba["<<i<<"] = " << tabla_criba[i] << endl;
 		}
-		
-		//Calculamos la solucion negativa
-		r2 = (-r1) % base_primos[i];
-		sol2 = (r2 - x_ini);
-		mpz_mod(sol2.get_mpz_t(), sol2.get_mpz_t(), base_primos[i].get_mpz_t());
-		//Realizamos la criba con la solucion negativa
-		if(sol1 != sol2){
-			//if(debug) cout << " y criba con " << sol2;
-			while(sol2 < tabla_criba.size()){
-				tabla_criba[sol2.get_ui()] /= base_primos[i];
-				factores[sol2.get_ui()][i] = !factores[sol2.get_ui()][i];
-				factores_count[sol2.get_ui()][i] += 1;
+		vector<vector<bool>> factores(tam_subtabla, vector<bool>(base_primos.size(), false));
+		vector<vector<int>> factores_count(tam_subtabla, vector<int>(base_primos.size(), 0));
+		//Calculamos las soluciones de f(x) = x^2 - n = 0 (mod p)
+		//--> x^2 = n (mod p) --> x = sqrt(n) (mod p)
+		//Una vez las tengamos, ejecutamos la criba
+		for(unsigned int i = 0; i < base_primos.size(); i++){
+			//Calculamos la raiz cuadrada de n
+			//if(debug) cout << "Primo " << base_primos[i] << " " << endl;
+			r1 = sqrtMod(n, base_primos[i]);
+			
+			//Realizamos la criba con la solucion positiva
+			sol1 = (r1 - x_ini);
+			mpz_mod(sol1.get_mpz_t(), sol1.get_mpz_t(), base_primos[i].get_mpz_t());
+			//Calculamos, a partir de la primera posicion, la primera posicion en la tabla actual
+			aux = (tam_subtabla*tabla_actual-sol1)/base_primos[i];
+			sol1 = sol1 + base_primos[i]*aux - tam_subtabla*tabla_actual;
+			if(sol1 < 0){
+				sol1 += base_primos[i];
+			}
+			//if(debug) cout << "criba con " << sol1;
+			it = sol1;
+			while(it < tabla_criba.size()){
+				tabla_criba[it.get_ui()] /= base_primos[i];
+				factores[it.get_ui()][i] = !factores[it.get_ui()][i];
+				factores_count[it.get_ui()][i] += 1;
+				it += base_primos[i];
+			}
+			
+			//Calculamos la solucion negativa
+			r2 = (-r1) % base_primos[i];
+			sol2 = (r2 - x_ini);
+			mpz_mod(sol2.get_mpz_t(), sol2.get_mpz_t(), base_primos[i].get_mpz_t());
+			//Calculamos, a partir de la primera posicion, la primera posicion en la tabla actual
+			aux = (tam_subtabla*tabla_actual-sol2)/base_primos[i];
+			sol2 = sol2 + base_primos[i]*aux - tam_subtabla*tabla_actual;
+			if(sol2 < 0){
 				sol2 += base_primos[i];
 			}
+			//Realizamos la criba con la solucion negativa
+			if(sol1 != sol2){
+				//if(debug) cout << " y criba con " << sol2;
+				while(sol2 < tabla_criba.size()){
+					tabla_criba[sol2.get_ui()] /= base_primos[i];
+					factores[sol2.get_ui()][i] = !factores[sol2.get_ui()][i];
+					factores_count[sol2.get_ui()][i] += 1;
+					sol2 += base_primos[i];
+				}
+			}
+			//if(debug) cout << endl;
 		}
-		//if(debug) cout << endl;
+		
+		for(unsigned int i = 0; i < tabla_criba.size(); i++){
+			//Extraemos los restos uniformes (=1)
+			if(tabla_criba[i] == 1){
+				x_uniformes.push_back(i+x_ini+tabla_actual*tam_subtabla);
+				factores_uniformes.push_back(factores[i]);
+				factores_uniformes_count.push_back(factores_count[i]);
+			}
+			/*
+			if(debug) {
+				cout << "Tabla_criba["<<i<<"] = " << tabla_criba[i] << "\t[";
+				
+				for(unsigned int j = 0; j < base_primos.size(); j++){
+					//cout << factores[i][j] << "\t";
+					cout << factores_count[i][j] << "\t";
+			}
+			cout << "]" << endl;
+			}
+			*/
+		}	
+		cout << "Restos uniformes encontrados: " << x_uniformes.size() << endl;
 	}
-	
-	for(unsigned int i = 0; i < tabla_criba.size() && x_uniformes.size() < base_primos.size()*1.5; i++){
-		//Extraemos los restos uniformes (=1)
-		if(tabla_criba[i] == 1){
-			x_uniformes.push_back(i);
-			factores_uniformes.push_back(factores[i]);
-			factores_uniformes_count.push_back(factores_count[i]);
-		}
-		/*
-		if(debug) {
-			cout << "Tabla_criba["<<i<<"] = " << tabla_criba[i] << "\t[";
-			
-			for(unsigned int j = 0; j < base_primos.size(); j++){
-				//cout << factores[i][j] << "\t";
-				cout << factores_count[i][j] << "\t";
-		}
-		cout << "]" << endl;
-		
-		
-		}
-		*/
-	}	
-	
 	if(x_uniformes.size() > 0){
-		if(debug)
+		if(debug){
 			cout << "Restos k-uniformes: " << x_uniformes.size() << endl;
+			cout << "Tamanio base de primos: "	<< base_primos.size() << endl;
+		}
 		/*
 		if(debug) {
 			for(unsigned int i = 0; i < x_uniformes.size(); i++){
@@ -359,11 +379,11 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 		}
 		*/
 		//Trasponemos factores_uniformes y ejecutamos la eliminacion gaussiana
-		vector<vector<bool>> factores_uniformes_t = transpose(factores_uniformes);
+		factores_uniformes = transpose(factores_uniformes);
 		
-		factores_uniformes_t = eliminacionGaussiana(factores_uniformes_t);
+		factores_uniformes = eliminacionGaussiana(factores_uniformes);
 		
-		vector<vector<bool>> sols = encuentraSoluciones(factores_uniformes_t);
+		vector<vector<bool>> sols = encuentraSoluciones(factores_uniformes);
 		if(debug) 
 			cout << "Numero de soluciones: " << sols.size() << endl;
 		vector<bool> sol;
@@ -400,7 +420,7 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 					mpz_class x_actual;
 					for(unsigned int i = 0; i < sol.size(); i++){
 						if(sol[i] == 1){
-							x_actual = x_ini + x_uniformes[i];
+							x_actual = x_uniformes[i];
 							/*
 							if(debug) {
 								cout << "x_uniformes[i] = " << x_uniformes[i] << endl;
