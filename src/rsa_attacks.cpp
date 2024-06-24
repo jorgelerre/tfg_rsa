@@ -133,26 +133,37 @@ mpz_class rhoPollard(mpz_class n, gmp_randstate_t state, bool debug){
 }
 
 mpz_class p1Pollard(mpz_class n, gmp_randstate_t state, const mpz_class k, const unsigned int att, bool debug){
-	mpz_class a, B, x, mcd;
+	mpz_class a, B, x, mcd = 1, p_potencia, p_actual;
 	bool exito = false;
-	//Calculamos B
-	B = maxKPotenciaSuave(k);
 	
 	for(unsigned int i = 0; i < att && !exito; i++){
 		//Seleccionamos una base a
 		mpz_urandomm (a.get_mpz_t(), state, n.get_mpz_t());
 		
-		//Calculamos a^B mod n
-		mpz_powm(x.get_mpz_t(), a.get_mpz_t(), B.get_mpz_t(), n.get_mpz_t());
-		
-		//Calculamos el mcd de a^B-1 y n
-		x = x - 1;
-		mpz_gcd(mcd.get_mpz_t(), x.get_mpz_t(), n.get_mpz_t());
-		
-		//Si mcd no es trivial, hemos conseguido un factor de n
-		if(mcd < n && mcd > 1)
-			exito = true;
+		p_actual = 2;
+		//Mientras el primo actual no supere el valor de K
+		while(p_actual < k && !exito){
+			cout << p_actual << endl;
+			p_potencia = p_actual;
+			//Calculamos el valor de p_actual^e tal que no supere K
+			while(p_potencia < k){
+				p_potencia = p_potencia * p_actual;	//p_potencia = p_actual^{n+1}
+			}
+			//Dividimos para que p_potencia < k
+			mpz_divexact(p_potencia.get_mpz_t(), p_potencia.get_mpz_t(), p_actual.get_mpz_t());	
+			//Multiplicamos dicho valor en el acumulador
+			mpz_powm(a.get_mpz_t(), a.get_mpz_t(), p_potencia.get_mpz_t(), n.get_mpz_t());
+			//Calculamos el mcd de a^B-1 y n
+			x = a - 1;
+			mpz_gcd(mcd.get_mpz_t(), x.get_mpz_t(), n.get_mpz_t());
 			
+			//Si mcd no es trivial, hemos conseguido un factor de n
+			if(mcd < n && mcd > 1)
+				exito = true;
+			//Pasamos al siguiente primo
+			mpz_nextprime(p_actual.get_mpz_t(), p_actual.get_mpz_t());
+		}
+		
 		if(debug){
 			if(mcd == n){
 				cout << "mcd = n : k es demasiado alto." << endl;
@@ -175,7 +186,7 @@ mpz_class p1Pollard(mpz_class n, gmp_randstate_t state, const mpz_class k, const
 mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state, const mpz_class k,
 									   const unsigned int att, bool debug){
 	Punto Q, M;
-	mpz_class p, a, b, aux, inv, L;
+	mpz_class p, a, b, aux, inv, p_actual, p_potencia;
 	bool exito = false;
 			
 	//Comprobamos que n no sea primo
@@ -183,53 +194,63 @@ mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state,
 		p = n;
 	}
 	else{
-		//Calculamos L = maximo numero K-potencia-uniforme. 
-		L = maxKPotenciaSuave(k);
 		for(unsigned int i = 0; i < att && !exito; i++){
 			//Escogemos una pseudo curva eliptica eligiendo a, b y definiendola en Z_n
 			mpz_urandomm (a.get_mpz_t(), state, n.get_mpz_t());
-			mpz_urandomm (b.get_mpz_t(), state, n.get_mpz_t());
 			
 			//Escogemos un punto Q aleatorio de la curva
 			mpz_urandomm (Q.x.get_mpz_t(), state, n.get_mpz_t());	//Elegimos x aleatorio
-			//Calculamos y como x^3 + ax + b (mod n)
-			Q.y = Q.x * Q.x * Q.x + a*Q.x + b;
-			mpz_mod(Q.y.get_mpz_t(), Q.y.get_mpz_t(), n.get_mpz_t());
+			mpz_urandomm (Q.y.get_mpz_t(), state, n.get_mpz_t());
+			//Calculamos b como y^2-x^3 - ax (mod n)
+			b = Q.y * Q.y - Q.x * Q.x * Q.x + a*Q.x;
+			
+			mpz_mod(b.get_mpz_t(), b.get_mpz_t(), n.get_mpz_t());
 			
 			if(debug){
-				cout << "Intento " << att << endl;
+				cout << "Intento " << i << endl;
 				cout << "Curva eliptica: " << endl;
 				cout << "a = " << a << endl;
 				cout << "b = " << b << endl;
 				cout << "Punto en la curva = (" << Q.x << "," << Q.y << ")" << endl;
-				cout << k << "-potencia-suave = " << L << endl;
 			}
 			
 			//Realizamos la multiplicacion
-			M = multiplicacionCurvaEliptica(Q, L, a, b, n, inv);
 			
-			//Si hemos encontrado un elemento no invertible, obtenemos un factor de n
-			if(M.x == -2){
-				
-				//Calculamos gcd
-				mpz_gcd (p.get_mpz_t(), inv.get_mpz_t(), n.get_mpz_t());
-				exito = true;
-				
-				if(debug){
-					cout << "Encontramos un elemento no invertible!!" << endl;
-					cout << "inv = " << inv << endl;
-					cout << "p = " << p << endl;
+			p_actual = 2;
+			
+			//Mientras el primo actual no supere el valor de K
+			while(p_actual < k && !exito){
+				p_potencia = p_actual;
+				//Calculamos el valor de p_actual^e tal que no supere K
+				while(p_potencia < k){
+					p_potencia = p_potencia * p_actual;	//p_potencia = p_actual^{n+1}
 				}
-			}
-			else{
-				if(debug){
-					if(M.x == -1){
-						cout << "Encontramos una solucion trivial." << endl;
-					}
-					else{
-						cout << "No hemos encontrado solucion." << endl;
+				//Dividimos para que p_potencia < k
+				//mpz_divexact(p_potencia.get_mpz_t(), p_potencia.get_mpz_t(), p_actual.get_mpz_t());	
+				//Multiplicamos dicho valor en el acumulador
+				M = multiplicacionCurvaEliptica(Q, p_potencia, a, b, n, inv);
+				//Si hemos encontrado un elemento no invertible, obtenemos un factor de n
+				if(M.x == -2){
+					
+					//Calculamos gcd
+					mpz_gcd (p.get_mpz_t(), inv.get_mpz_t(), n.get_mpz_t());
+					exito = true;
+					
+					if(debug){
+						cout << "Encontramos un elemento no invertible!!" << endl;
+						cout << "inv = " << inv << endl;
+						cout << "p = " << p << endl;
 					}
 				}
+				else{
+					if(debug){
+						if(M.x == -1){
+							cout << "Encontramos una solucion trivial." << endl;
+						}
+					}
+				}
+				//Pasamos al siguiente primo
+				mpz_nextprime(p_actual.get_mpz_t(), p_actual.get_mpz_t());
 			}
 		}
 	}
@@ -277,7 +298,7 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 	
 	
 	for(int tabla_actual = 0; tabla_actual < num_tablas && x_uniformes.size() < base_primos.size()+50; tabla_actual++){
-		cout << "Tabla " << tabla_actual << endl;
+		if(debug) cout << "Tabla " << tabla_actual << endl;
 		//Creamos la tabla de la criba y la tabla de factores
 		mpz_sqrt(x_ini.get_mpz_t(), n.get_mpz_t());	//Guardamos en x_ini = sqrt(n)
 		x_ini++;
@@ -358,7 +379,7 @@ mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k,
 			}
 			*/
 		}	
-		cout << "Restos uniformes encontrados: " << x_uniformes.size() << endl;
+		if(debug) cout << "Restos uniformes encontrados: " << x_uniformes.size() << endl;
 	}
 	if(x_uniformes.size() > 0){
 		if(debug){

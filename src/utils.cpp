@@ -171,28 +171,34 @@ mpz_class generatePrime(unsigned int bits, gmp_randstate_t state) {
 mpz_class generateStrongPrime(unsigned int bits, gmp_randstate_t state, bool debug) {
     mpz_class p,p_0,r,s,t,i,j,aux;
     int bits_j, bits_1, bits_2;
-    
+    debug = true;
     if(debug) cout << "Buscando s,t..." << endl;
     //Generamos dos primos grandes s, t
-    if(bits > 90){
-		bits_1 = (bits-log2(bits))/2 - 3;
-		bits_2 = bits_1 - log2(bits_1) - 6;
-    }
-    else{
-    	bits_1 = (bits-log2(bits))/2 - 1;
-		bits_2 = bits_1 - log2(bits_1) - 1;
-		cout << "bits 1: " << bits_1 << endl;
-		cout << "bits 2: " << bits_2 << endl;
-		if(bits_1 < 4){
-			bits_1 = 4;
-		}
-		if(bits_2 < 2){
-			bits_2 = 2;
-		}
-		
-		cout << "bits 1: " << bits_1 << endl;
-		cout << "bits 2: " << bits_2 << endl;
-    }
+	if(bits > 110){
+		bits_1 = (bits-log2(bits))/2 - 1;
+		bits_2 = bits_1 - log2(bits_1)/2 - 1;
+	}
+	else{
+		bits_1 = bits/2 - log2(bits)/2;
+		bits_2 = bits_1 - log2(bits_1)/2;
+		/*
+		if(bits > 60){
+			bits_1 += 2;
+			bits_2 += 2;
+		}*/
+	}
+	if(debug) cout << "bits 1: " << bits_1 << endl;
+	if(debug) cout << "bits 2: " << bits_2 << endl;
+	if(bits_1 < 4){
+		bits_1 = 4;
+	}
+	if(bits_2 < 2){
+		bits_2 = 2;
+	}
+	
+	if(debug) cout << "bits 1: " << bits_1 << endl;
+	if(debug) cout << "bits 2: " << bits_2 << endl;
+    
     
     do{
 		s = generatePrime(bits_1, state);
@@ -205,9 +211,9 @@ mpz_class generateStrongPrime(unsigned int bits, gmp_randstate_t state, bool deb
 		mpz_urandomb(i.get_mpz_t(), state, log2(bits));
 		if(debug) cout << "i = " << i << endl;
 		//Calculamos r: r sea primo
+		r = 2*i*t + 1;
 		do{
-			i++;
-			r = 2*i*t + 1;
+			r += 2*t;
 		}while(!millerRabin(r,10,state));
 		if(debug){	
 			cout << "r = " << r << endl;
@@ -276,79 +282,85 @@ Punto sumaCurvaEliptica(const Punto s1, const Punto s2, const mpz_class a,
 						  << s2.y << ")" << endl;
 		cout << "p = " << p << endl;
 	}
-	//Si alguno de los puntos es O, devolvemos el otro punto como solucion
-	if(s1.x == 0){
-		s3.x = s2.x;
-		s3.y = s2.y;
-		if(debug) cout << "Sumando 1 es \"O\": devolviendo s2" << endl;
+	if(s1.x == -2 || s2.x == -2){
+		s3.x = -2;
+		s3.x = -2;
 	}
 	else{
-		if(s2.x < 0){
-			s3.x = s1.x;
-			s3.y = s1.y;
-			if(debug) cout << "Sumando 2 es \"O\": devolviendo s1" << endl;
+		//Si alguno de los puntos es O, devolvemos el otro punto como solucion
+		if(s1.x == -1){
+			s3.x = s2.x;
+			s3.y = s2.y;
+			if(debug) cout << "Sumando 1 es \"O\": devolviendo s2" << endl;
 		}
 		else{
-			//Si tenemos dos puntos de la forma (x,y) y (x,-y), devolvemos O
-			aux = s1.y + s2.y;
-			if(debug) cout << "Suma curva eliptica sin O" << endl;
-			mpz_mod(aux.get_mpz_t(), aux.get_mpz_t(), p.get_mpz_t());
-			if(debug) cout << "Suma curva eliptica sin O" << endl;
-			if(s1.x == s2.x && aux == 0){
-				s3.x = -1;
-				s3.y = -1;
-				if(debug) cout << "Puntos opuestos: devolviendo \"O\"" << endl;
+			if(s2.x == -1){
+				s3.x = s1.x;
+				s3.y = s1.y;
+				if(debug) cout << "Sumando 2 es \"O\": devolviendo s1" << endl;
 			}
-			//En otro caso
 			else{
-				//Calculamos lambda
-				//Si ambos puntos son iguales
-				if(s1.x == s2.x && s1.y == s2.y){
-					if(debug) cout << "Puntos iguales: calculando lambda" << endl;
-					//lambda = (3x^2 + a)/2y
-					lambda = 3*s1.x*s1.x + a;
-					inv = 2*s1.y;
-					//Si no hay inversa, devuelve 0
-					exito = mpz_invert(aux.get_mpz_t(), inv.get_mpz_t(), p.get_mpz_t());	
-					if(exito != 0){
-						lambda = lambda * aux;
-						mpz_mod(lambda.get_mpz_t(), lambda.get_mpz_t(), p.get_mpz_t());
-					}
+				//Si tenemos dos puntos de la forma (x,y) y (x,-y), devolvemos O
+				aux = s1.y + s2.y;
+				if(debug) cout << "Suma curva eliptica sin O" << endl;
+				mpz_mod(aux.get_mpz_t(), aux.get_mpz_t(), p.get_mpz_t());
+				if(debug) cout << "Suma curva eliptica sin O" << endl;
+				if(s1.x == s2.x && aux == 0){
+					s3.x = -1;
+					s3.y = -1;
+					if(debug) cout << "Puntos opuestos: devolviendo \"O\"" << endl;
 				}
-				//Si ambos numeros son diferentes
+				//En otro caso
 				else{
-					if(debug) cout << "Puntos diferentes: calculando lambda" << endl;
-					//lambda = (y1 - y2)/(x1 - x2)
-					lambda = s1.y - s2.y;
-					inv = s1.x - s2.x;
-					//Si no hay inversa, devuelve 0
-					exito = mpz_invert(aux.get_mpz_t(), inv.get_mpz_t(), p.get_mpz_t());	
+					//Calculamos lambda
+					//Si ambos puntos son iguales
+					if(s1.x == s2.x && s1.y == s2.y){
+						if(debug) cout << "Puntos iguales: calculando lambda" << endl;
+						//lambda = (3x^2 + a)/2y
+						lambda = 3*s1.x*s1.x + a;
+						inv = 2*s1.y;
+						//Si no hay inversa, devuelve 0
+						exito = mpz_invert(aux.get_mpz_t(), inv.get_mpz_t(), p.get_mpz_t());	
+						if(exito != 0){
+							lambda = lambda * aux;
+							mpz_mod(lambda.get_mpz_t(), lambda.get_mpz_t(), p.get_mpz_t());
+						}
+					}
+					//Si ambos numeros son diferentes
+					else{
+						if(debug) cout << "Puntos diferentes: calculando lambda" << endl;
+						//lambda = (y1 - y2)/(x1 - x2)
+						lambda = s1.y - s2.y;
+						inv = s1.x - s2.x;
+						//Si no hay inversa, devuelve 0
+						exito = mpz_invert(aux.get_mpz_t(), inv.get_mpz_t(), p.get_mpz_t());	
+						if(exito != 0){
+							lambda = lambda*aux;	
+							mpz_mod(lambda.get_mpz_t(), lambda.get_mpz_t(), p.get_mpz_t());
+						}
+					}
 					if(exito != 0){
-						lambda = lambda*aux;	
-						mpz_mod(lambda.get_mpz_t(), lambda.get_mpz_t(), p.get_mpz_t());
+						if(debug) cout << "lambda = " << lambda << endl;
+						//Calculamos la coordenada x de la suma
+						//x3 = lambda^2 - x1 - x2 (mod p)
+						s3.x = lambda*lambda - s1.x - s2.x;
+						mpz_mod(s3.x.get_mpz_t(), s3.x.get_mpz_t(), p.get_mpz_t());
+						
+						//Calculamos la coordenada y
+						//y3 = lambda*(x_1-x_3) - y1 (mod p)
+						s3.y = lambda*(s1.x - s3.x) - s1.y;
+						mpz_mod(s3.y.get_mpz_t(), s3.y.get_mpz_t(), p.get_mpz_t());
+						if(debug) cout << "Suma = (" << s3.x << "," << s3.y << ")" << endl;
 					}
-				}
-				if(exito != 0){
-					if(debug) cout << "lambda = " << lambda << endl;
-					//Calculamos la coordenada x de la suma
-					//x3 = lambda^2 - x1 - x2 (mod p)
-					s3.x = lambda*lambda - s1.x - s2.x;
-					mpz_mod(s3.x.get_mpz_t(), s3.x.get_mpz_t(), p.get_mpz_t());
-					
-					//Calculamos la coordenada y
-					//y3 = lambda*(x_1-x_3) - y1 (mod p)
-					s3.y = lambda*(s1.x - s3.x) - s1.y;
-					mpz_mod(s3.y.get_mpz_t(), s3.y.get_mpz_t(), p.get_mpz_t());
-					if(debug) cout << "Suma = (" << s3.x << "," << s3.y << ")" << endl;
-				}
-				else{
-					//Punto no definido
-					if(debug){
-						cout << "Suma no definida: no existe el inverso de " << inv << endl;
-						cout << "inv = " << inv << endl;
+					else{
+						//Punto no definido
+						if(debug){
+							cout << "Suma no definida: no existe el inverso de " << inv << endl;
+							cout << "inv = " << inv << endl;
+						}
+						s3.x = -2;
+						s3.y = -2;
 					}
-					s3.x = -2;
-					s3.y = -2;
 				}
 			}
 		}

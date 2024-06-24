@@ -46,10 +46,6 @@ void muestraMenu4() {
     cout << "Seleccione una opción: ";
 }
 
-void muestraMenu3() {
-	
-	
-}
 
 
 
@@ -189,13 +185,13 @@ int main() {
 							cin >> tam_tabla;
 							cout << "tam_tabla = " << tam_tabla << endl;
 							inicio = clock();
-							p = factorizacionCribaCuadratica(n, k, tam_tabla, true);
+							p = factorizacionCribaCuadratica(n, k, tam_tabla);
 							fin = clock();
 							break;
 						case 7: //Ataque de Wiener
 							cout << "Ataque de Wiener\n";
 							inicio = clock();
-							res = ataqueWiener(d_res, p, q, e, n, true);
+							res = ataqueWiener(d_res, p, q, e, n);
 							fin = clock();
 				    		
 							if(res){
