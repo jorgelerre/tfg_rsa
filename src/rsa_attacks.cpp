@@ -143,7 +143,6 @@ mpz_class p1Pollard(mpz_class n, gmp_randstate_t state, const mpz_class k, const
 		p_actual = 2;
 		//Mientras el primo actual no supere el valor de K
 		while(p_actual < k && !exito){
-			cout << p_actual << endl;
 			p_potencia = p_actual;
 			//Calculamos el valor de p_actual^e tal que no supere K
 			while(p_potencia < k){
@@ -182,13 +181,12 @@ mpz_class p1Pollard(mpz_class n, gmp_randstate_t state, const mpz_class k, const
 	return mcd;
 }
 
-
+/*
 mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state, const mpz_class k,
 									   const unsigned int att, bool debug){
 	Punto Q, M;
 	mpz_class p, a, b, aux, inv, p_actual, p_potencia;
 	bool exito = false;
-	debug = true;
 	//Comprobamos que n no sea primo
 	if(millerRabin(n, 10, state)){
 		p = n;
@@ -220,15 +218,18 @@ mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state,
 			
 			//Mientras el primo actual no supere el valor de K
 			while(p_actual < k && !exito){
+				cout << p_actual << "\t";
 				p_potencia = p_actual;
 				//Calculamos el valor de p_actual^e tal que no supere K
-				while(p_potencia < k){
+				while(p_potencia < k && M.x != -2){
 					p_potencia = p_potencia * p_actual;	//p_potencia = p_actual^{n+1}
+					M = multiplicacionCurvaEliptica(Q, p_actual, a, b, n, inv);
 				}
+				cout << p_potencia << endl;
 				//Dividimos para que p_potencia < k
 				//mpz_divexact(p_potencia.get_mpz_t(), p_potencia.get_mpz_t(), p_actual.get_mpz_t());	
 				//Multiplicamos dicho valor en el acumulador
-				M = multiplicacionCurvaEliptica(Q, p_potencia, a, b, n, inv);
+				
 				//Si hemos encontrado un elemento no invertible, obtenemos un factor de n
 				if(M.x == -2){
 					
@@ -263,7 +264,7 @@ mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state,
 	return p;
 }
 
-
+*/
 
 mpz_class factorizacionCribaCuadratica(const mpz_class &n, const mpz_class &k, 
 									   const unsigned int tam_tabla, bool debug){

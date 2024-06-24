@@ -57,8 +57,8 @@ mpz_class p1Pollard(mpz_class n, gmp_randstate_t state, const mpz_class k,
  * @param debug Habilita la salida de depuración si es verdadero.
  * @return El factor encontrado de n.
  */
-mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state, const mpz_class k, 
-                                       const unsigned int att = 1000, bool debug = false);
+//mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state, const mpz_class k, 
+//                                       const unsigned int att = 1000, bool debug = false);
 
 /**
  * Realiza la factorización de n utilizando la criba cuadrática.

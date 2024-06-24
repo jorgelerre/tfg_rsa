@@ -256,7 +256,7 @@ mpz_class generateStrongPrime(unsigned int bits, gmp_randstate_t state, bool deb
     return p;
 }
 
-
+/*
 
 //Suma en la curva eliptica y^2 = x^3 + ax + b en el cuerpo Z_p
 Punto sumaCurvaEliptica(const Punto s1, const Punto s2, const mpz_class a, 
@@ -272,9 +272,11 @@ Punto sumaCurvaEliptica(const Punto s1, const Punto s2, const mpz_class a,
 						  << s2.y << ")" << endl;
 		cout << "p = " << p << endl;
 	}
+	
 	if(s1.x == -2 || s2.x == -2){
 		s3.x = -2;
 		s3.x = -2;
+		exit(0);
 	}
 	else{
 		//Si alguno de los puntos es O, devolvemos el otro punto como solucion
@@ -350,6 +352,8 @@ Punto sumaCurvaEliptica(const Punto s1, const Punto s2, const mpz_class a,
 						}
 						s3.x = -2;
 						s3.y = -2;
+						cout << "PUNTO NO DEFINIDO" << endl;
+						exit(0);
 					}
 				}
 			}
@@ -411,6 +415,8 @@ Punto multiplicacionCurvaEliptica(const Punto f1, const mpz_class f2, const mpz_
 
 	return mul;
 }
+
+*/
 
 //Calcula el numero mas grande tal que sea k-potencia-suave
 mpz_class maxKPotenciaSuave(const mpz_class k){

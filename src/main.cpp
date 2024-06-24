@@ -38,10 +38,9 @@ void muestraMenu4() {
     cout << "2. Ataque de Kraitchik\n";
     cout << "3. Ataque rho de Pollard\n";
     cout << "4. Ataque p-1\n";
-    cout << "5. Ataque de factorizacion por curvas elipticas\n";
-    cout << "6. Ataque de factorizacion por criba cuadratica\n";
-    cout << "7. Ataque de Wiener\n";
-    cout << "8. Volver\n";
+    cout << "5. Ataque de factorizacion por criba cuadratica\n";
+    cout << "6. Ataque de Wiener\n";
+    cout << "7. Volver\n";
     cout << "===========================\n";
     cout << "Seleccione una opción: ";
 }
@@ -129,7 +128,7 @@ int main() {
 		        if(clave_iniciada){
 		        	muestraMenu4();
 		        	cin >> opcion2;
-		        	while(opcion2 < 1 || opcion2 > 8){
+		        	while(opcion2 < 1 || opcion2 > 7){
 					    cout << "Opción inválida. Por favor, intentalo de nuevo.\n" << endl;
 				    	cin >> opcion2;
 				    }
@@ -164,19 +163,7 @@ int main() {
 							p = p1Pollard(n, state, k, att);
 							fin = clock();
 							break;
-						case 5: //Ataque de factorizacion por curvas elipticas
-							cout << "Ataque de factorizacion por curvas elipticas\n";
-							cout << "Introduce un valor de k: ";
-							cin >> k;
-							cout << "k = " << k << endl;
-							cout << "Introduce el numero de intentos a realizar: ";
-							cin >> att;
-							cout << "att = " << att << endl;
-							inicio = clock();
-							p = factorizacionCurvasElipticas(n, state, k, att);
-							fin = clock();
-							break;
-						case 6:	//Ataque de factorizacion por criba cuadratica
+						case 5:	//Ataque de factorizacion por criba cuadratica
 							cout << "Ataque de factorizacion por criba cuadratica\n";
 							cout << "Introduce un valor de k: ";
 							cin >> k;
@@ -185,10 +172,10 @@ int main() {
 							cin >> tam_tabla;
 							cout << "tam_tabla = " << tam_tabla << endl;
 							inicio = clock();
-							p = factorizacionCribaCuadratica(n, k, tam_tabla);
+							p = factorizacionCribaCuadratica(n, k, tam_tabla, true);
 							fin = clock();
 							break;
-						case 7: //Ataque de Wiener
+						case 6: //Ataque de Wiener
 							cout << "Ataque de Wiener\n";
 							inicio = clock();
 							res = ataqueWiener(d_res, p, q, e, n);
@@ -206,10 +193,10 @@ int main() {
 							}
 							cout << "Tiempo de ejecucion (s) = " << tiempo_ejecucion << endl;
 							break;
-						case 8: //Volver
+						case 7: //Volver
 							break;
 				    }
-				    if(opcion2 < 7){
+				    if(opcion2 < 6){
 						q = n / p;
 						tiempo_ejecucion = double(fin - inicio) / CLOCKS_PER_SEC;
 						cout << "n = " << n << endl;
