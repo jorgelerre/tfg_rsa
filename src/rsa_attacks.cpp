@@ -188,7 +188,7 @@ mpz_class factorizacionCurvasElipticas(const mpz_class n, gmp_randstate_t state,
 	Punto Q, M;
 	mpz_class p, a, b, aux, inv, p_actual, p_potencia;
 	bool exito = false;
-			
+	debug = true;
 	//Comprobamos que n no sea primo
 	if(millerRabin(n, 10, state)){
 		p = n;

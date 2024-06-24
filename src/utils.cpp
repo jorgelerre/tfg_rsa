@@ -171,22 +171,12 @@ mpz_class generatePrime(unsigned int bits, gmp_randstate_t state) {
 mpz_class generateStrongPrime(unsigned int bits, gmp_randstate_t state, bool debug) {
     mpz_class p,p_0,r,s,t,i,j,aux;
     int bits_j, bits_1, bits_2;
-    debug = true;
     if(debug) cout << "Buscando s,t..." << endl;
     //Generamos dos primos grandes s, t
-	if(bits > 110){
-		bits_1 = (bits-log2(bits))/2 - 1;
-		bits_2 = bits_1 - log2(bits_1)/2 - 1;
-	}
-	else{
-		bits_1 = bits/2 - log2(bits)/2;
-		bits_2 = bits_1 - log2(bits_1)/2;
-		/*
-		if(bits > 60){
-			bits_1 += 2;
-			bits_2 += 2;
-		}*/
-	}
+	
+	bits_1 = (bits-log2(bits))/2 - 1;
+	bits_2 = bits_1 - log2(bits_1)/2 - 1;
+	
 	if(debug) cout << "bits 1: " << bits_1 << endl;
 	if(debug) cout << "bits 2: " << bits_2 << endl;
 	if(bits_1 < 4){
